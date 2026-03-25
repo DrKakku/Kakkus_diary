@@ -18,7 +18,7 @@ status: idea
 ## Possiable future integrations
 
 - integrate the music engine and cater it to the different notes that i have so that it enriches the experienc
-- 
+- explore if we can have indocument links similar to obsidian so that we can directly send people to another page with simple mentions from our side like this [[Document]]
 
 ## Known bugs at the time  2026-03-26
 - the links are broken because the leading slash is not added to the url so need to fix that, maby now as its a major break
@@ -34,9 +34,8 @@ then the optional tags/metadata we need and more and more <todo>
 
 i also need to test if this supports html tags 
 
-<b>
-<h1>THis is a test<h1/>
-</b>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=1x1Lgy-b7F5C5X8X" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 
 ---
 
