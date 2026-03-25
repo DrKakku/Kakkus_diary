@@ -14,8 +14,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-
-    steps:
+    
+    env:
+      OBSIDIAN_REPO: "https://github.com/DrKakku/obsidian-repo.git"
+      OBSIDIAN_BRANCH: "main"
+      OBSIDIAN_FOLDER: "publish"
       - name: Checkout website repo
         uses: actions/checkout@v4
         with:
@@ -56,9 +59,13 @@ jobs:
           # Temporary directory for cloning
           TEMP_REPO="/tmp/obsidian-vault-check"
           
-          # Clone with shallow depth for speed
+          # Clone with PAT authentication (hidden in logs)
           mkdir -p "$TEMP_REPO"
-          git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$OBSIDIAN_REPO" "$TEMP_REPO" 2>/dev/null || {
+          
+          # Build authenticated URL
+          REPO_WITH_AUTH="https://DrKakku:${{ secrets.OBSIDIAN_PAT }}@github.com/DrKakku/obsidian-repo.git"
+          
+          git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$REPO_WITH_AUTH" "$TEMP_REPO" 2>/dev/null || {
             echo "⚠️ Could not validate remote repo structure. Proceeding with caution..."
             exit 0
           }
@@ -80,6 +87,8 @@ jobs:
               ((FOUND_SENSITIVE++))
             fi
           done
+            fi
+          done
           
           # Confirm private/ folder exists and is NOT in publish/
           if [ -d "$TEMP_REPO/private" ]; then
@@ -98,18 +107,17 @@ jobs:
           rm -rf "$TEMP_REPO"
 
       - name: Sync content from Obsidian vault
-        env:
-          OBSIDIAN_REPO: "https://github.com/DrKakku/obsidian-repo.git"
-          OBSIDIAN_BRANCH: "main"
-          OBSIDIAN_FOLDER: "publish"
         run: |
           # This step will:
-          # 1. Clone or pull the Obsidian repo
+          # 1. Clone or pull the Obsidian repo using PAT
           # 2. Copy the publish/ folder to src/content/imported/
           # 3. Preserve folder structure exactly
           # 4. Explicitly BLOCK private/ folder
           
           echo "📂 Syncing content from Obsidian vault..."
+          
+          # Build authenticated URL
+          REPO_WITH_AUTH="https://DrKakku:${{ secrets.OBSIDIAN_PAT }}@github.com/DrKakku/obsidian-repo.git"
           
           # Clone or update Obsidian repo
           if [ -d "/tmp/obsidian-vault" ]; then
@@ -118,7 +126,7 @@ jobs:
             git pull origin "$OBSIDIAN_BRANCH"
           else
             echo "Cloning Obsidian repo..."
-            git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$OBSIDIAN_REPO" /tmp/obsidian-vault
+            git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$REPO_WITH_AUTH" /tmp/obsidian-vault
           fi
           
           cd - > /dev/null
