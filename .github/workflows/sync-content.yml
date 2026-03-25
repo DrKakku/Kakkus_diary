@@ -89,8 +89,7 @@ jobs:
               ((FOUND_SENSITIVE++))
             fi
           done
-            fi
-          done
+
           
           # Confirm private/ folder exists and is NOT in publish/
           if [ -d "$TEMP_REPO/private" ]; then
