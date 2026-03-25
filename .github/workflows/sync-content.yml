@@ -19,6 +19,8 @@ jobs:
       OBSIDIAN_REPO: "https://github.com/DrKakku/obsidian-repo.git"
       OBSIDIAN_BRANCH: "main"
       OBSIDIAN_FOLDER: "publish"
+
+    steps:
       - name: Checkout website repo
         uses: actions/checkout@v4
         with:
