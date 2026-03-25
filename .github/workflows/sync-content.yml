@@ -167,7 +167,12 @@ jobs:
           if [ "$ERRORS" -gt 0 ]; then
             exit 1
           fi
-
+          
+      - name: Debug
+        run: |
+          echo "Repo contents:"
+          ls -la
+          
       # -------------------------------
       # 🏗 BUILD SITE
       # -------------------------------
