@@ -71,6 +71,7 @@ jobs:
             -d '{"ref":"main"}'
 
   build:
+      needs: sync
       runs-on: ubuntu-latest
   
       steps:
