@@ -1,0 +1,79 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  getBreadcrumbs,
+  getEntryPath,
+  getEntryTitle,
+  getMetadataBadges,
+} from "../lib/content";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("entries");
+
+  return entries.map((entry) => {
+    const path = getEntryPath(entry);
+
+    return {
+      params: {
+        slug: path,
+      },
+      props: {
+        entry,
+        path,
+      },
+    };
+  });
+}
+
+const { entry, path } = Astro.props;
+
+import { render } from "astro:content";
+
+const { Content } = await render(entry);
+const breadcrumbs = getBreadcrumbs(path);
+const title = getEntryTitle(entry);
+---
+
+<BaseLayout title={title}>
+  <article class="article">
+    <nav class="breadcrumbs">
+      <a href="/">Home</a>
+
+      {breadcrumbs.map((crumb) => (
+        <>
+          <span>/</span>
+          <a href={crumb.href}>{crumb.label}</a>
+        </>
+      ))}
+    </nav>
+
+    <header class="article-header">
+      <h1>{title}</h1>
+
+      <p class="article-meta">
+        <span>{entry.data.date.toISOString().slice(0, 10)}</span>
+
+        {entry.data.status ? (
+          <span class={`status status-${entry.data.status}`}>
+            {entry.data.status}
+          </span>
+        ) : null}
+      </p>
+
+      <div class="tag-row">
+        {getMetadataBadges(entry.data).map((badge) => (
+          <span class="tag">{badge.label}</span>
+        ))}
+
+        {(entry.data.tags ?? []).map((tag) => (
+          <span class="tag tag-muted">{tag}</span>
+        ))}
+      </div>
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

@@ -1,15 +1,141 @@
 ---
-import { getCollection } from 'astro:content';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import {
+  buildHierarchy,
+  getEntryPath,
+  getEntryTitle,
+  getMetadataBadges,
+  withBase,
+} from "../lib/content";
+import { siteConfig } from "../config/site.config";
 
-const notes = await getCollection('notes');
+const entries = (await getCollection("entries"))
+  .map((entry) => ({
+    ...entry,
+    safePath: getEntryPath(entry),
+    safeTitle: getEntryTitle(entry),
+  }))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const hierarchy = buildHierarchy(entries);
+const latestEntries = entries.slice(0, siteConfig.recentLimit);
+
+const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
 ---
 
-<h1>Notes</h1>
+<BaseLayout title="Home">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Obsidian vault → GitHub Pages</p>
+      <h1>Notes, experiments, and writing — preserved as hierarchy.</h1>
+      <p class="lead">My Adventures and Thoughts.</p>
+    </div>
 
-<ul>
-  {notes.map(note => (
-    <li>
-      <a href={`/notes/${note.slug}`}>{note.data.title}</a>
-    </li>
-  ))}
-</ul>
+    <aside class="hero-card">
+      <div class="hero-stat">
+        <strong>{entries.length}</strong>
+        <span>published entries</span>
+      </div>
+      <div class="hero-stat">
+        <strong>{uniqueTags.size}</strong>
+        <span>unique tags</span>
+      </div>
+      <div class="hero-stat">
+        <strong>{hierarchy.length}</strong>
+        <span>folders + files</span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Content map</h2>
+      <p>Every folder in the imported subtree appears here dynamically.</p>
+    </div>
+
+    {hierarchy.length > 0 ? (
+      <ul class="hierarchy">
+        {hierarchy.map((row) => {
+          const title = row.entry?.data.title ?? row.path.split("/").pop() ?? "Untitled";
+
+          return (
+            <li
+              class:list={[
+                "hierarchy-row",
+                row.kind,
+                `depth-${row.depth}`,
+              ]}
+              style={`--depth:${row.depth};`}
+            >
+              <span class="icon">{row.kind === "folder" ? "📁" : "•"}</span>
+
+              {row.kind === "file" && row.entry ? (
+                <>
+                  <a class="file-link" href={withBase("/" + row.path)}>
+                    {title}
+                  </a>
+
+                  <span class="entry-inline-meta">
+                    {getMetadataBadges(row.entry.data).map((badge) => (
+                      <span class="tag">{badge.label}</span>
+                    ))}
+                  </span>
+                </>
+              ) : (
+                <span class="folder-label">{row.label}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    ) : (
+      <div class="empty-state">
+        <p>No imported notes yet.</p>
+        <p>
+          Create a markdown file inside the synced <code>publish</code> folder
+          in Obsidian, push it, and the site will pick it up.
+        </p>
+      </div>
+    )}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Recent entries</h2>
+      <p>Latest imported notes and pages.</p>
+    </div>
+
+    {latestEntries.length > 0 ? (
+      <div class="card-grid">
+        {latestEntries.map((entry) => (
+          <article class={`entry-card ${entry.data.status ?? ""}`}>
+            <p class="entry-meta">
+              <span>{entry.data.date.toISOString().slice(0, 10)}</span>
+            </p>
+
+            <h3>
+              <a href={withBase("/" + entry.safePath)}>{entry.safeTitle}</a>
+            </h3>
+
+            <p class="entry-path">{entry.safePath}</p>
+
+            <div class="tag-row">
+              {getMetadataBadges(entry.data).map((badge) => (
+                <span class="tag">{badge.label}</span>
+              ))}
+
+              {(entry.data.tags ?? []).map((tag) => (
+                <span class="tag tag-muted">{tag}</span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div class="empty-state">
+        <p>No entries yet.</p>
+      </div>
+    )}
+  </section>
+</BaseLayout>

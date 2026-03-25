@@ -1,53 +1,29 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
-// Base schema (shared across all content)
-const baseSchema = z.object({
-  title: z.string(),
-  date: z.coerce.date(),
-  tags: z.array(z.string()).default([]),
-  type: z.enum(["note", "blog", "experiment"]),
+const entrySchema = z
+  .object({
+    title: z.string(),
+    date: z.coerce.date(),
+    description: z.string().optional(),
+    tags: z.array(z.string()).default([]),
 
-  // Optional metadata (your extensible system)
-  rating: z.number().min(1).max(5).optional(),
-  score: z.number().min(0).max(10).optional(),
-  status: z.string().optional(),
-  featured: z.boolean().optional(),
-  series: z.string().optional(),
-});
+    // Optional structured metadata
+    type: z.string().optional(),
+    rating: z.number().int().min(1).max(5).optional(),
+    score: z.number().min(0).max(10).optional(),
+    status: z.string().optional(),
+    featured: z.boolean().optional(),
+    series: z.string().optional(),
+  })
+  .passthrough();
 
-// -----------------------------
-// COLLECTIONS
-// -----------------------------
-
-const notes = defineCollection({
+const entries = defineCollection({
   loader: glob({
     pattern: "**/*.md",
-    base: "./src/content/imported/notes",
+    base: "./src/content/imported",
   }),
-  schema: baseSchema,
+  schema: entrySchema,
 });
 
-const blog = defineCollection({
-  loader: glob({
-    pattern: "**/*.md",
-    base: "./src/content/imported/blog",
-  }),
-  schema: baseSchema,
-});
-
-const experiments = defineCollection({
-  loader: glob({
-    pattern: "**/*.md",
-    base: "./src/content/imported/experiments",
-  }),
-  schema: baseSchema,
-});
-
-// -----------------------------
-
-export const collections = {
-  notes,
-  blog,
-  experiments,
-};
+export const collections = { entries };

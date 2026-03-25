@@ -1,0 +1,32 @@
+---
+import "../styles/global.css";
+import { siteConfig } from "../config/site.config";
+import { withBase } from "../lib/content";
+
+const {
+  title = siteConfig.siteName,
+  description = siteConfig.siteDescription,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href={withBase("/")}>{siteConfig.siteName}</a>
+        <p class="subtitle">{siteConfig.siteDescription}</p>
+      </header>
+
+      <main class="main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
