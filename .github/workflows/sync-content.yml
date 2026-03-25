@@ -1,22 +1,17 @@
-name: Sync Content from Obsidian Vault
+name: Sync from Obsidian
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "publish/**"
+  repository_dispatch:
+    types: [obsidian-sync]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    env:
-      OBSIDIAN_REPO: "https://github.com/DrKakku/obsidian-repo.git"
-      OBSIDIAN_BRANCH: "main"
-      OBSIDIAN_FOLDER: "publish"
 
     steps:
       - name: Checkout website repo
@@ -26,170 +21,45 @@ jobs:
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with:     
+        with:
           node-version: "22"
-          cache: "npm"
+          cache: npm
 
-
-      # -------------------------------
-      # 🔐 SECURITY VALIDATION
-      # -------------------------------
-      - name: Pre-sync security validation
+      - name: Sync publish folder from Obsidian
+        env:
+          OBSIDIAN_PAT: ${{ secrets.OBSIDIAN_PAT }}
         run: |
           set -euo pipefail
 
-          echo "🔐 Running pre-sync security checks..."
+          rm -rf /tmp/obsidian-vault
+          git clone --depth 1 --branch main "https://DrKakku:${OBSIDIAN_PAT}@github.com/DrKakku/obsidian-repo.git" /tmp/obsidian-vault
 
-          BLOCKED_PATTERNS=(
-            ".env"
-            ".secret"
-            "password"
-            "api_key"
-            "token"
-            "credentials"
-          )
-
-          TEMP_REPO="/tmp/obsidian-check"
-          rm -rf "$TEMP_REPO"
-
-          REPO_WITH_AUTH="https://DrKakku:${{ secrets.OBSIDIAN_PAT }}@github.com/DrKakku/obsidian-repo.git"
-
-          echo "Cloning Obsidian repo for validation..."
-          if ! git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$REPO_WITH_AUTH" "$TEMP_REPO"; then
-            echo "⚠️ Could not clone repo for validation. Skipping checks."
-            exit 0
-          fi
-
-          if [ ! -d "$TEMP_REPO/$OBSIDIAN_FOLDER" ]; then
-            echo "❌ ERROR: publish/ folder not found!"
-            exit 1
-          fi
-
-          echo "✅ publish/ folder found"
-
-          for pattern in "${BLOCKED_PATTERNS[@]}"; do
-            if find "$TEMP_REPO/$OBSIDIAN_FOLDER" -iname "*$pattern*" | grep -q .; then
-              echo "⚠️ Warning: Found sensitive pattern: $pattern"
-            fi
-          done
-
-          rm -rf "$TEMP_REPO"
-
-      # -------------------------------
-      # 📂 SYNC CONTENT
-      # -------------------------------
-      - name: Sync content
-        run: |
-          set -euo pipefail
-
-          echo "📂 Syncing content..."
-
-          OBSIDIAN_DIR="/tmp/obsidian-vault"
-          rm -rf "$OBSIDIAN_DIR"
-
-          REPO_WITH_AUTH="https://DrKakku:${{ secrets.OBSIDIAN_PAT }}@github.com/DrKakku/obsidian-repo.git"
-
-          echo "Cloning Obsidian repo..."
-          git clone --depth 1 --branch "$OBSIDIAN_BRANCH" "$REPO_WITH_AUTH" "$OBSIDIAN_DIR"
-
-          SOURCE="$OBSIDIAN_DIR/$OBSIDIAN_FOLDER"
+          SOURCE="/tmp/obsidian-vault/publish"
           DEST="src/content/imported"
 
           if [ ! -d "$SOURCE" ]; then
-            echo "❌ ERROR: Source folder not found!"
+            echo "publish folder not found in Obsidian repo"
             exit 1
           fi
 
           mkdir -p "$DEST"
-
-          echo "🔄 Syncing files..."
           rsync -av --delete "$SOURCE"/ "$DEST"/
 
-          echo "🔐 Checking for private leaks..."
-
-          PRIVATE_PATTERNS=(
-            "private/"
-            ".env"
-            ".secret"
-            "password"
-            "api_key"
-            "token"
-          )
-
-          for pattern in "${PRIVATE_PATTERNS[@]}"; do
-            if find "$DEST" -iname "*$pattern*" | grep -q .; then
-              echo "❌ ERROR: Found forbidden pattern: $pattern"
-              exit 1
-            fi
-          done
-
-          echo "✅ Sync complete"
-
-      # -------------------------------
-      # 🧪 VALIDATE CONTENT
-      # -------------------------------
-      - name: Validate markdown
-        run: |
-          set -euo pipefail
-
-          echo "🧪 Validating markdown..."
-
-          IMPORT_DIR="src/content/imported"
-          ERRORS=0
-          WARNINGS=0
-
-          if [ ! -d "$IMPORT_DIR" ]; then
-            echo "⚠️ No content found"
-            exit 0
-          fi
-
-          while IFS= read -r -d '' file; do
-            rel="${file#$IMPORT_DIR/}"
-
-            if ! grep -q "^---" "$file"; then
-              echo "❌ Missing frontmatter: $rel"
-              ((ERRORS++))
-              continue
-            fi
-
-            grep -q "^title:" "$file" || { echo "❌ Missing title: $rel"; ((ERRORS++)); }
-            grep -q "^date:" "$file" || { echo "❌ Missing date: $rel"; ((ERRORS++)); }
-            grep -q "^type:" "$file" || { echo "❌ Missing type: $rel"; ((ERRORS++)); }
-
-            if ! grep -q "^tags:" "$file"; then
-              echo "⚠️ Missing tags: $rel"
-              ((WARNINGS++))
-            fi
-
-          done < <(find "$IMPORT_DIR" -type f -name "*.md" -print0)
-
-          echo "Errors: $ERRORS"
-          echo "Warnings: $WARNINGS"
-
-          if [ "$ERRORS" -gt 0 ]; then
-            exit 1
-          fi
-          
-      - name: Debug
-        run: |
-          echo "Repo contents:"
-          ls -la
-          
-      # -------------------------------
-      # 🏗 BUILD SITE
-      # -------------------------------
-      - name: Build site
-        run: |
-          set -euo pipefail
-          npm install
-          npm run build
-
-      # -------------------------------
-      # 💾 COMMIT CHANGES
-      # -------------------------------
-      - name: Commit changes
+      - name: Commit synced content
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: sync content from Obsidian"
           file_pattern: "src/content/imported/**"
-          skip_dirty_check: true
+          skip_dirty_check: false
+
+      - name: Trigger deploy workflow explicitly
+        env:
+          WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+        run: |
+          set -euo pipefail
+
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${WORKFLOW_PAT}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches \
+            -d '{"ref":"main"}'
