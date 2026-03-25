@@ -19,12 +19,17 @@ export function getEntryTitle(entry: Entry) {
   const path = getEntryPath(entry);
   return entry.data.title ?? path.split("/").pop() ?? "Untitled";
 }
-
 export function withBase(path: string) {
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${import.meta.env.BASE_URL}${cleanPath.replace(/^\//, "")}`;
-}
+  const base = import.meta.env.BASE_URL || "/";
 
+  // remove trailing slash from base
+  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+
+  // ensure path starts with /
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  return normalizedBase + normalizedPath;
+}
 export function formatStars(rating?: number | null) {
   if (typeof rating !== "number") return "";
   const max = 5;
