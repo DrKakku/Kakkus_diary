@@ -1,0 +1,42 @@
+# Security: Block accidental commits of sensitive files
+# These should NEVER be committed from Obsidian vault syncs
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.secret
+secrets/
+credentials/
+
+# Authentication
+**/auth/**
+**/token*
+**/password*
+**/api_key*
+**/apikey*
+
+# Private data (just in case)
+private/
+.private/
+_private/
+
+# Sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Databases with sensitive data
+*.db
+*.sqlite
+
+# Logs that might contain secrets
+*.log
+
+# Temp files
+.DS_Store
+Thumbs.db
+
+# This folder should only contain published content
+# If you see this rule trigger, check your Obsidian vault's publish/ folder
