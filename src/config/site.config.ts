@@ -1,6 +1,6 @@
 export const siteConfig = {
   siteName: "Kakku's Diary",
-  siteDescription: "Notes, experiments, and writing from an Obsidian vault.",
+  siteDescription: "Notes, experiments, and writing from an entity.",
   recentLimit: 8,
 
   // Expandable metadata parser registry

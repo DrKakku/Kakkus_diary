@@ -1,79 +1,117 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import {
-  getBreadcrumbs,
   getEntryPath,
   getEntryTitle,
   getMetadataBadges,
+  withBase,
 } from "../lib/content";
+
+const entries = await getCollection("entries");
 
 export async function getStaticPaths() {
   const entries = await getCollection("entries");
 
-  return entries.map((entry) => {
-    const path = getEntryPath(entry);
+  const paths = [];
 
-    return {
-      params: {
-        slug: path,
-      },
-      props: {
-        entry,
-        path,
-      },
-    };
-  });
+  const folders = new Set();
+
+  for (const entry of entries) {
+    const path = entry.id;
+    const parts = path.split("/");
+
+    // Add file route
+    paths.push({
+      params: { slug: path },
+      props: { type: "file", entry, path },
+    });
+
+    // Add folder routes
+    for (let i = 1; i < parts.length; i++) {
+      const folder = parts.slice(0, i).join("/");
+      folders.add(folder);
+    }
+  }
+
+  for (const folder of folders) {
+    paths.push({
+      params: { slug: folder },
+      props: { type: "folder", path: folder },
+    });
+  }
+
+  return paths;
 }
 
-const { entry, path } = Astro.props;
+const { type, entry, path } = Astro.props;
 
-import { render } from "astro:content";
+const title =
+  entry?.data?.title ??
+  path.split("/").pop() ??
+  "Untitled";
 
-const { Content } = await render(entry);
-const breadcrumbs = getBreadcrumbs(path);
-const title = getEntryTitle(entry);
+// Folder children
+const children =
+  type === "folder"
+    ? entries.filter((e) => e.id.startsWith(path + "/"))
+    : [];
+
+let Content = null;
+
+if (type === "file") {
+  const rendered = await render(entry);
+  Content = rendered.Content;
+}
 ---
 
 <BaseLayout title={title}>
   <article class="article">
     <nav class="breadcrumbs">
-      <a href="/">Home</a>
+      <a href={withBase("/")}>Home</a>
 
-      {breadcrumbs.map((crumb) => (
-        <>
-          <span>/</span>
-          <a href={crumb.href}>{crumb.label}</a>
-        </>
-      ))}
+      {path.split("/").map((p, i, arr) => {
+        const href = withBase("/" + arr.slice(0, i + 1).join("/"));
+        return (
+          <>
+            <span>/</span>
+            <a href={href}>{p}</a>
+          </>
+        );
+      })}
     </nav>
 
     <header class="article-header">
       <h1>{title}</h1>
-
-      <p class="article-meta">
-        <span>{entry.data.date.toISOString().slice(0, 10)}</span>
-
-        {entry.data.status ? (
-          <span class={`status status-${entry.data.status}`}>
-            {entry.data.status}
-          </span>
-        ) : null}
-      </p>
-
-      <div class="tag-row">
-        {getMetadataBadges(entry.data).map((badge) => (
-          <span class="tag">{badge.label}</span>
-        ))}
-
-        {(entry.data.tags ?? []).map((tag) => (
-          <span class="tag tag-muted">{tag}</span>
-        ))}
-      </div>
     </header>
 
-    <div class="prose">
-      <Content />
-    </div>
+    {type === "file" && Content && (
+      <div class="prose">
+        <Content />
+      </div>
+    )}
+
+    {type === "folder" && (
+      <>
+        <h2>Contents</h2>
+
+        <ul>
+          {children.map((child) => {
+            const childPath = child.id;
+            const childTitle =
+              child.data.title ??
+              childPath.split("/").pop();
+
+            return (
+              <li>
+                <a href={withBase("/" + childPath)}>
+                  {childTitle}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    )}
   </article>
 </BaseLayout>
