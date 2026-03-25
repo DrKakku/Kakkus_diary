@@ -51,7 +51,7 @@ const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
   <section class="panel">
     <div class="panel-header">
       <h2>Content map</h2>
-      <p>Every folder in the imported subtree appears here dynamically.</p>
+      <p>Proto of every idea and topic scattered here.</p>
     </div>
 
     {hierarchy.length > 0 ? (
@@ -93,8 +93,7 @@ const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
       <div class="empty-state">
         <p>No imported notes yet.</p>
         <p>
-          Create a markdown file inside the synced <code>publish</code> folder
-          in Obsidian, push it, and the site will pick it up.
+          Guess i dont have anything to talk about at the moment
         </p>
       </div>
     )}
@@ -102,8 +101,8 @@ const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
 
   <section class="panel">
     <div class="panel-header">
-      <h2>Recent entries</h2>
-      <p>Latest imported notes and pages.</p>
+      <h2>Whats Latest</h2>
+      <p>What did kakku think of now?</p>
     </div>
 
     {latestEntries.length > 0 ? (
@@ -118,7 +117,6 @@ const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
               <a href={withBase("/" + entry.safePath)}>{entry.safeTitle}</a>
             </h3>
 
-            <p class="entry-path">{entry.safePath}</p>
 
             <div class="tag-row">
               {getMetadataBadges(entry.data).map((badge) => (
@@ -134,7 +132,7 @@ const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
       </div>
     ) : (
       <div class="empty-state">
-        <p>No entries yet.</p>
+        <p>He does not like to talk a lot .</p>
       </div>
     )}
   </section>
