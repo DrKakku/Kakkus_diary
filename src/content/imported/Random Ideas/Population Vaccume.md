@@ -1,5 +1,5 @@
 ---
-title: Untitled
+title: Population Vaccume
 date: 2026-03-25
 tags:
   - population
@@ -52,8 +52,7 @@ Here's a more detailed breakdown of the projections:
     
     The average annual exponential growth of India's population is on a downward trajectory and is expected to decline from 2.20 per cent in 1971 to 1 per cent in 2024, placing the national population in the range of 138-142 crore in 2024, according to SBI's economic research department (ERD).
 
-![[FkaH8bxaUAUmi-u.jpg-large.jpeg]]
-
+[Image](./Assets/FkaH8bxaUAUmi-u.jpg-large.jpeg)
 ## What does this mean for us
 
 if we are smart about it we can look at it as an oppurtunity to get better economic choices and can focus on technologies which enable better lifestyle for older people( they will also be more technologically literate) and we can help that. personally i dont think i will have kids(not helping the current state of things) which means that another person will need to have 2 more kids or multiple people will need to fill in the gap created by me, also assuming that multiple people will have the same thought process things will not imporve, Major cities in india will have a decline in population which will be repelaced by the less developed towns and villages almost working as a population factories, but as they also get developed they will encounter the same problem.(will also happen on the global level funnyly enough)
