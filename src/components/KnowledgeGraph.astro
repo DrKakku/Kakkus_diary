@@ -1,0 +1,201 @@
+---
+import { slugify } from "../lib/content";
+import type { SiteData } from "../lib/site-data";
+
+const {
+  title = "Knowledge Graph",
+  description = "Explore links between notes and tags.",
+  graph,
+  mode = "global",
+  focusPath,
+  initialDepth = 2,
+  showTags = true,
+  collapsible = false,
+  initiallyOpen = true,
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  graph: SiteData["graph"];
+  mode?: "global" | "local";
+  focusPath?: string;
+  initialDepth?: number;
+  showTags?: boolean;
+  collapsible?: boolean;
+  initiallyOpen?: boolean;
+};
+
+const graphId = `graph-${slugify(`${mode}-${focusPath ?? title}`)}`;
+const sections = Array.from(new Set(graph.nodes.map((node) => node.section).filter(Boolean))).sort();
+---
+
+{collapsible ? (
+  <details class="group rounded-[2rem] border border-base-300 bg-base-100/85 p-5 shadow-sm" open={initiallyOpen}>
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
+          {mode === "global" ? "Graph view" : "Local graph"}
+        </p>
+        <h2 class="display-font mt-2 text-2xl font-semibold">{title}</h2>
+        <p class="mt-2 max-w-2xl text-sm leading-7 text-base-content/70">{description}</p>
+      </div>
+      <span class="btn btn-ghost btn-sm rounded-full group-open:hidden">Open</span>
+      <span class="btn btn-ghost btn-sm rounded-full hidden group-open:inline-flex">Close</span>
+    </summary>
+
+    <section
+      class="graph-shell mt-6"
+      data-graph-id={graphId}
+      data-mode={mode}
+      data-focus-path={focusPath ?? ""}
+      data-initial-depth={String(initialDepth)}
+      data-show-tags={showTags ? "true" : "false"}
+    >
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
+            {mode === "global" ? "Global graph" : "Local graph"}
+          </p>
+          <h2 class="display-font text-3xl font-semibold">{title}</h2>
+          <p class="max-w-2xl text-sm leading-7 text-base-content/70">{description}</p>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="form-control min-w-56">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Search</span>
+            <input class="input input-bordered rounded-2xl" type="search" placeholder="Find a note or tag you remember..." />
+          </label>
+
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Node force</span>
+            <input class="range range-primary" type="range" min="2000" max="12000" step="250" value="5200" data-role="gravity" />
+          </label>
+
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Link length</span>
+            <input class="range range-primary" type="range" min="80" max="260" step="5" value="145" data-role="spring-length" />
+          </label>
+
+          {mode === "global" && (
+            <label class="form-control min-w-40">
+              <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Section</span>
+              <select class="select select-bordered rounded-2xl" data-role="section-filter">
+                <option value="all">All sections</option>
+                {sections.map((section) => (
+                  <option value={section}>{section?.replace(/-/g, " ")}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {mode === "local" && (
+            <label class="form-control min-w-40">
+              <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Depth</span>
+              <input class="range range-primary" type="range" min="1" max="4" step="1" value={String(initialDepth)} data-role="depth" />
+            </label>
+          )}
+
+          <label class="label flex cursor-pointer gap-3 rounded-2xl border border-base-300 px-4 py-3">
+            <span class="text-sm text-base-content/70">Show tags</span>
+            <input class="toggle toggle-primary" type="checkbox" checked={showTags} data-role="show-tags" />
+          </label>
+
+          <button class="btn btn-outline btn-sm rounded-full" type="button" data-role="fit">Fit</button>
+          <button class="btn btn-ghost btn-sm rounded-full" type="button" data-role="reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div class="graph-canvas overflow-hidden rounded-[1.75rem] border border-base-300 bg-neutral/95" data-role="graph"></div>
+        <div class="rounded-[1.75rem] border border-base-300 bg-base-100/80 p-5 shadow-sm" data-role="graph-info">
+          <strong class="block text-sm font-semibold">Start exploring</strong>
+          <p class="mt-2 text-sm leading-7 text-base-content/70">
+            Hover for context, click to open, drag to reposition, and scroll to zoom.
+          </p>
+        </div>
+      </div>
+
+      <script type="application/json" class="graph-data" set:html={JSON.stringify(graph)} />
+      <script>
+        import "../scripts/knowledge-graph";
+      </script>
+    </section>
+  </details>
+) : (
+  <section
+    class="graph-shell rounded-[2rem] border border-base-300 bg-base-100/85 p-5 shadow-sm"
+    data-graph-id={graphId}
+    data-mode={mode}
+    data-focus-path={focusPath ?? ""}
+    data-initial-depth={String(initialDepth)}
+    data-show-tags={showTags ? "true" : "false"}
+  >
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
+          {mode === "global" ? "Global graph" : "Local graph"}
+        </p>
+        <h2 class="display-font text-3xl font-semibold">{title}</h2>
+        <p class="max-w-2xl text-sm leading-7 text-base-content/70">{description}</p>
+      </div>
+
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="form-control min-w-56">
+          <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Search</span>
+          <input class="input input-bordered rounded-2xl" type="search" placeholder="Find a note or tag you remember..." />
+        </label>
+
+        <label class="form-control min-w-40">
+          <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Node force</span>
+          <input class="range range-primary" type="range" min="2000" max="12000" step="250" value="5200" data-role="gravity" />
+        </label>
+
+        <label class="form-control min-w-40">
+          <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Link length</span>
+          <input class="range range-primary" type="range" min="80" max="260" step="5" value="145" data-role="spring-length" />
+        </label>
+
+        {mode === "global" && (
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Section</span>
+            <select class="select select-bordered rounded-2xl" data-role="section-filter">
+              <option value="all">All sections</option>
+              {sections.map((section) => (
+                <option value={section}>{section?.replace(/-/g, " ")}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {mode === "local" && (
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Depth</span>
+            <input class="range range-primary" type="range" min="1" max="4" step="1" value={String(initialDepth)} data-role="depth" />
+          </label>
+        )}
+
+        <label class="label flex cursor-pointer gap-3 rounded-2xl border border-base-300 px-4 py-3">
+          <span class="text-sm text-base-content/70">Show tags</span>
+          <input class="toggle toggle-primary" type="checkbox" checked={showTags} data-role="show-tags" />
+        </label>
+
+        <button class="btn btn-outline btn-sm rounded-full" type="button" data-role="fit">Fit</button>
+        <button class="btn btn-ghost btn-sm rounded-full" type="button" data-role="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div class="graph-canvas overflow-hidden rounded-[1.75rem] border border-base-300 bg-neutral/95" data-role="graph"></div>
+      <div class="rounded-[1.75rem] border border-base-300 bg-base-100/80 p-5 shadow-sm" data-role="graph-info">
+        <strong class="block text-sm font-semibold">Start exploring</strong>
+        <p class="mt-2 text-sm leading-7 text-base-content/70">
+          Hover for context, click to open, drag to reposition, and scroll to zoom.
+        </p>
+      </div>
+    </div>
+
+    <script type="application/json" class="graph-data" set:html={JSON.stringify(graph)} />
+    <script>
+      import "../scripts/knowledge-graph";
+    </script>
+  </section>
+)}

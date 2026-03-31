@@ -1,0 +1,44 @@
+---
+import { formatDate, withBase } from "../lib/content";
+import type { NoteRecord } from "../lib/site-data";
+
+const {
+  note,
+  showSection = false,
+  compact = false,
+} = Astro.props as {
+  note: NoteRecord;
+  showSection?: boolean;
+  compact?: boolean;
+};
+---
+
+<article class:list={[
+  "card border border-base-300 bg-base-100/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+  compact && "card-side flex-col",
+]}>
+  <div class:list={["card-body", compact ? "p-4" : "p-5", "gap-3"]}>
+    <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-base-content/50">
+      {showSection && <span>{note.sectionLabel}</span>}
+      {showSection && <span>•</span>}
+      <span>{formatDate(note.canonicalDate)}</span>
+    </div>
+
+    <div class="space-y-2">
+      <h3 class:list={["font-semibold", compact ? "text-base" : "text-lg"]}>
+        <a class="link link-hover" href={note.url}>{note.title}</a>
+      </h3>
+      <p class="text-sm leading-7 text-base-content/70">{note.summary}</p>
+    </div>
+
+    {note.tags.length > 0 && (
+      <div class="flex flex-wrap gap-2">
+        {note.tags.slice(0, compact ? 2 : 4).map((tag) => (
+          <a class="badge badge-outline" href={withBase(`/writing/tags/${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`)}>
+            {tag}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</article>

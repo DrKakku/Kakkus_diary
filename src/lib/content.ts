@@ -1,35 +1,137 @@
 import type { CollectionEntry } from "astro:content";
-import { siteConfig } from "../config/site.config";
 
 export type Entry = CollectionEntry<"entries">;
+export type ProjectEntry = CollectionEntry<"projects">;
 
-export type HierarchyRow = {
-  kind: "folder" | "file";
+export type MetadataBadge = {
   label: string;
-  path: string;
-  depth: number;
-  entry?: Entry;
+  kind: string;
+  tone?: string;
 };
+
+export function withBase(path: string) {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return normalizedBase + normalizedPath;
+}
 
 export function getEntryPath(entry: Entry) {
   return entry.id.replace(/\/index$/, "");
 }
 
+export function getEntryUrl(entry: Entry) {
+  return withBase("/" + getEntryPath(entry));
+}
+
+export function getProjectPath(entry: ProjectEntry) {
+  return entry.id.replace(/\/index$/, "");
+}
+
+export function getProjectUrl(entry: ProjectEntry) {
+  return withBase(`/projects/${getProjectPath(entry)}`);
+}
+
 export function getEntryTitle(entry: Entry) {
-  const path = getEntryPath(entry);
-  return entry.data.title ?? path.split("/").pop() ?? "Untitled";
+  return entry.data.title ?? humanizeSlug(getEntryPath(entry).split("/").pop() ?? "Untitled");
 }
-export function withBase(path: string) {
-  const base = import.meta.env.BASE_URL || "/";
 
-  // remove trailing slash from base
-  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
-
-  // ensure path starts with /
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-
-  return normalizedBase + normalizedPath;
+export function humanizeSlug(value: string) {
+  return value
+    .split(/[-/]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
+
+export function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/['".,()[\]]+/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function normalizeLookup(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\.md$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+export function getInlineTags(body = "") {
+  const matches = body.match(/(^|\s)#([A-Za-z][A-Za-z0-9/_-]*)/g) ?? [];
+  return matches
+    .map((match) => match.trim().replace(/^#/, ""))
+    .filter(Boolean);
+}
+
+export function getUniqueTags(...groups: Array<string[] | undefined>) {
+  const seen = new Map<string, string>();
+
+  for (const group of groups) {
+    for (const tag of group ?? []) {
+      const cleaned = tag.trim();
+      if (!cleaned) continue;
+
+      const key = cleaned.toLowerCase();
+
+      if (!seen.has(key)) {
+        seen.set(key, cleaned);
+      }
+    }
+  }
+
+  return [...seen.values()];
+}
+
+export function getEntrySummary(entry: Entry) {
+  return (
+    entry.data.summary ??
+    entry.data.description ??
+    extractExcerpt(entry.body ?? "")
+  );
+}
+
+export function extractExcerpt(body: string, maxLength = 180) {
+  const cleaned = body
+    .replace(/^---[\s\S]*?---/, "")
+    .replace(/^#.*$/gm, "")
+    .replace(/!\[\[.*?\]\]/g, "")
+    .replace(/\[\[.*?\]\]/g, "")
+    .replace(/`{3}[\s\S]*?`{3}/g, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return "A note from the writing space.";
+  if (cleaned.length <= maxLength) return cleaned;
+
+  return `${cleaned.slice(0, maxLength).trimEnd()}...`;
+}
+
+export function formatDate(date?: Date | string | null) {
+  if (!date) return "";
+
+  const value = typeof date === "string" ? new Date(date) : date;
+
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(value);
+}
+
+export function formatDateRange(start?: Date, end?: Date) {
+  if (!start && !end) return "";
+  if (start && !end) return `${formatDate(start)} - Present`;
+  if (!start && end) return formatDate(end);
+  return `${formatDate(start)} - ${formatDate(end)}`;
+}
+
 export function formatStars(rating?: number | null) {
   if (typeof rating !== "number") return "";
   const max = 5;
@@ -41,84 +143,71 @@ export function formatScore(score?: number | null) {
   return `${score}/10`;
 }
 
-export function getBreadcrumbs(path: string) {
-  const parts = path.split("/").filter(Boolean);
-
-  return parts.map((part, index) => ({
-    label: part,
-    href: withBase("/" + parts.slice(0, index + 1).join("/")),
-  }));
+export function getStatusTone(status?: string | null) {
+  if (!status) return "";
+  return `status-${slugify(status)}`;
 }
 
 export function getMetadataBadges(data: Record<string, unknown>) {
-  const badges: { label: string; kind: string }[] = [];
+  const badges: MetadataBadge[] = [];
 
-  for (const parser of siteConfig.metadataParsers) {
-    const value = data[parser.key];
+  if (typeof data.status === "string" && data.status.trim()) {
+    badges.push({
+      label: data.status,
+      kind: "status",
+      tone: getStatusTone(data.status),
+    });
+  }
 
-    if (parser.kind === "stars" && typeof value === "number") {
-      badges.push({
-        label: formatStars(value),
-        kind: parser.key,
-      });
-    }
+  if (typeof data.rating === "number") {
+    badges.push({
+      label: formatStars(data.rating),
+      kind: "rating",
+    });
+  }
 
-    if (parser.kind === "score" && typeof value === "number") {
-      badges.push({
-        label: formatScore(value),
-        kind: parser.key,
-      });
-    }
+  if (typeof data.score === "number") {
+    badges.push({
+      label: formatScore(data.score),
+      kind: "score",
+    });
+  }
 
-    if (parser.kind === "label" && typeof value === "string" && value.trim()) {
-      badges.push({
-        label: value,
-        kind: parser.key,
-      });
-    }
+  if (typeof data.series === "string" && data.series.trim()) {
+    badges.push({
+      label: data.series,
+      kind: "series",
+      tone: "tone-series",
+    });
+  }
 
-    if (parser.kind === "flag" && value === true) {
-      badges.push({
-        label: parser.key,
-        kind: parser.key,
-      });
-    }
+  if (data.featured === true) {
+    badges.push({
+      label: "featured",
+      kind: "featured",
+      tone: "tone-featured",
+    });
+  }
+
+  if (typeof data.type === "string" && data.type.trim()) {
+    badges.push({
+      label: data.type,
+      kind: "type",
+      tone: "tone-type",
+    });
   }
 
   return badges;
 }
 
-export function buildHierarchy(entries: Entry[]): HierarchyRow[] {
-  const rows = new Map<string, HierarchyRow>();
+export function encodeRoutePath(path: string) {
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+}
 
-  for (const entry of entries) {
-    const path = getEntryPath(entry);
-    const parts = path.split("/").filter(Boolean);
-
-    let currentPath = "";
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      const folder = parts[i];
-      currentPath = currentPath ? `${currentPath}/${folder}` : folder;
-
-      if (!rows.has(currentPath)) {
-        rows.set(currentPath, {
-          kind: "folder",
-          label: folder,
-          path: currentPath,
-          depth: i,
-        });
-      }
-    }
-
-    rows.set(path, {
-      kind: "file",
-      label: getEntryTitle(entry),
-      path,
-      depth: Math.max(0, parts.length - 1),
-      entry,
-    });
-  }
-
-  return [...rows.values()].sort((a, b) => a.path.localeCompare(b.path));
+export function buildHref(path: string) {
+  return withBase("/" + encodeRoutePath(path));
 }

@@ -1,117 +1,222 @@
 ---
-import { getCollection, render } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import {
-  getEntryPath,
-  getEntryTitle,
-  getMetadataBadges,
-  withBase,
-} from "../lib/content";
-
-const entries = await getCollection("entries");
+import KnowledgeGraph from "../components/KnowledgeGraph.astro";
+import NoteCard from "../components/NoteCard.astro";
+import SectionHeading from "../components/ui/SectionHeading.astro";
+import { formatDate, humanizeSlug, withBase } from "../lib/content";
+import { siteConfig } from "../config/site.config";
+import { renderNoteHtml } from "../lib/markdown";
+import { getFolderChildren, getSiteData } from "../lib/site-data";
 
 export async function getStaticPaths() {
-  const entries = await getCollection("entries");
+  const siteData = await getSiteData();
 
-  const paths = [];
-
-  const folders = new Set();
-
-  for (const entry of entries) {
-    const path = entry.id;
-    const parts = path.split("/");
-
-    // Add file route
-    paths.push({
-      params: { slug: path },
-      props: { type: "file", entry, path },
-    });
-
-    // Add folder routes
-    for (let i = 1; i < parts.length; i++) {
-      const folder = parts.slice(0, i).join("/");
-      folders.add(folder);
-    }
-  }
-
-  for (const folder of folders) {
-    paths.push({
-      params: { slug: folder },
-      props: { type: "folder", path: folder },
-    });
-  }
-
-  return paths;
+  return [
+    ...siteData.notes.map((note) => ({
+      params: { slug: note.path },
+      props: { type: "file", path: note.path },
+    })),
+    ...siteData.folders.map((folder) => ({
+      params: { slug: folder.path },
+      props: { type: "folder", path: folder.path },
+    })),
+  ];
 }
 
-const { type, entry, path } = Astro.props;
+const siteData = await getSiteData();
+const { type, path } = Astro.props as { type: "file" | "folder"; path: string };
 
-const title =
-  entry?.data?.title ??
-  path.split("/").pop() ??
-  "Untitled";
+const note = type === "file" ? siteData.notesByPath.get(path) : undefined;
+const folderState = type === "folder" ? getFolderChildren(siteData, path) : undefined;
+const folder = folderState?.folder;
 
-// Folder children
-const children =
-  type === "folder"
-    ? entries.filter((e) => e.id.startsWith(path + "/"))
-    : [];
-
-let Content = null;
-
-if (type === "file") {
-  const rendered = await render(entry);
-  Content = rendered.Content;
+if (type === "file" && !note) {
+  throw new Error(`Missing note for path "${path}"`);
 }
+
+if (type === "folder" && !folder) {
+  throw new Error(`Missing folder for path "${path}"`);
+}
+
+const html = note ? await renderNoteHtml(note, siteData) : "";
+const title = note?.title ?? folder?.label ?? humanizeSlug(path.split("/").pop() ?? "Writing");
+const description = note?.summary ?? folder?.description ?? "A derived branch of the writing space.";
+
+const breadcrumbs = path.split("/").filter(Boolean).map((segment, index, allSegments) => {
+  const itemPath = allSegments.slice(0, index + 1).join("/");
+  const itemFolder = siteData.foldersByPath.get(itemPath);
+
+  return {
+    label:
+      index === allSegments.length - 1 && note
+        ? note.title
+        : itemFolder?.label ?? humanizeSlug(segment),
+    href: withBase("/" + itemPath),
+    current: index === allSegments.length - 1,
+  };
+});
+
+const outboundLinks = note
+  ? note.links
+      .filter((link) => link.href && link.path)
+      .filter((link, index, allLinks) => allLinks.findIndex((candidate) => candidate.href === link.href) === index)
+      .slice(0, 8)
+  : [];
 ---
 
-<BaseLayout title={title}>
-  <article class="article">
-    <nav class="breadcrumbs">
-      <a href={withBase("/")}>Home</a>
-
-      {path.split("/").map((p, i, arr) => {
-        const href = withBase("/" + arr.slice(0, i + 1).join("/"));
-        return (
-          <>
-            <span>/</span>
-            <a href={href}>{p}</a>
-          </>
-        );
-      })}
+<BaseLayout title={title} description={description} theme="writing" enableWritingEnhancers>
+  <div class="space-y-8">
+    <nav class="breadcrumbs text-sm text-base-content/60">
+      <ul>
+        <li><a href={withBase("/")}>Home</a></li>
+        <li><a href={withBase("/writing")}>Writing</a></li>
+        {breadcrumbs.map((crumb) => (
+          <li>
+            {crumb.current ? <span>{crumb.label}</span> : <a href={crumb.href}>{crumb.label}</a>}
+          </li>
+        ))}
+      </ul>
     </nav>
 
-    <header class="article-header">
-      <h1>{title}</h1>
-    </header>
+    {note ? (
+      <>
+        <section class="rounded-[2rem] border border-base-300 bg-base-100/85 p-6 shadow-sm sm:p-8">
+          <div class="space-y-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">{note.sectionLabel}</p>
+            <h1 class="display-font text-4xl font-semibold tracking-tight sm:text-5xl">{note.title}</h1>
+            <p class="max-w-3xl text-base leading-8 text-base-content/70">{note.summary}</p>
+            <div class="flex flex-wrap items-center gap-3 text-sm text-base-content/60">
+              <span>{formatDate(note.canonicalDate)}</span>
+              <span>•</span>
+              <span>{note.derivedType}</span>
+              <span>•</span>
+              <a class="link link-hover" href={withBase("/writing")}>Writing hub</a>
+            </div>
+            {note.tags.length > 0 && (
+              <div class="flex flex-wrap gap-2">
+                {note.tags.map((tag) => (
+                  <a class="badge badge-outline" href={withBase(`/writing/tags/${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`)}>
+                    {tag}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
-    {type === "file" && Content && (
-      <div class="prose">
-        <Content />
+        <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <section class="rounded-[2rem] border border-base-300 bg-base-100/85 p-6 shadow-sm sm:p-8">
+            <div class="article-prose" set:html={html}></div>
+          </section>
+
+          <aside class="space-y-4">
+            {note.backlinks.length > 0 && (
+              <section class="rounded-[1.75rem] border border-base-300 bg-base-100/85 p-5 shadow-sm">
+                <h2 class="text-lg font-semibold">Backlinks</h2>
+                <ul class="mt-3 space-y-3 text-sm">
+                  {note.backlinks.map((entry) => (
+                    <li><a class="link link-hover" href={entry.url}>{entry.title}</a></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {outboundLinks.length > 0 && (
+              <section class="rounded-[1.75rem] border border-base-300 bg-base-100/85 p-5 shadow-sm">
+                <h2 class="text-lg font-semibold">Links from this note</h2>
+                <ul class="mt-3 space-y-3 text-sm">
+                  {outboundLinks.map((link) => (
+                    <li><a class="link link-hover" href={link.href}>{link.label}</a></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <section class="rounded-[1.75rem] border border-base-300 bg-base-100/85 p-5 shadow-sm">
+              <h2 class="text-lg font-semibold">Derived metadata</h2>
+              <dl class="mt-3 space-y-3 text-sm text-base-content/70">
+                <div>
+                  <dt class="font-medium text-base-content">Title source</dt>
+                  <dd>{note.derivationSource.title}</dd>
+                </div>
+                <div>
+                  <dt class="font-medium text-base-content">Date source</dt>
+                  <dd>{note.derivationSource.date}</dd>
+                </div>
+                <div>
+                  <dt class="font-medium text-base-content">Type source</dt>
+                  <dd>{note.derivationSource.type}</dd>
+                </div>
+              </dl>
+            </section>
+          </aside>
+        </div>
+
+        <KnowledgeGraph
+          title="Local Graph"
+          description="A smaller graph around the current note. Use this when you want context, not noise."
+          graph={siteData.graph}
+          mode="local"
+          focusPath={note.path}
+          initialDepth={siteConfig.writing.localGraphDepth}
+          showTags={siteConfig.writing.showTagsInGraph}
+          collapsible
+          initiallyOpen={true}
+        />
+
+        {siteConfig.writing.showRelatedNotes && note.related.length > 0 && (
+          <section class="space-y-5">
+            <SectionHeading eyebrow="Related" title="Optional next reads" copy="A small set of nearby notes you may want to continue into." />
+            <div class="grid gap-4 lg:grid-cols-3">
+              {note.related.map((entry) => (
+                <NoteCard note={entry} compact />
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    ) : (
+      <div class="space-y-8">
+        <section class="rounded-[2rem] border border-base-300 bg-base-100/85 p-6 shadow-sm sm:p-8">
+          <SectionHeading
+            eyebrow="Folder"
+            title={title}
+            copy={`${folderState?.descendantNotes.length ?? 0} notes live inside this branch of the vault.`}
+          />
+        </section>
+
+        {folderState?.childFolders.length ? (
+          <section class="space-y-5">
+            <SectionHeading eyebrow="Subfolders" title="Continue deeper into this branch" />
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {folderState.childFolders.map((child) => (
+                <a class="card border border-base-300 bg-base-100/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" href={child.url}>
+                  <div class="card-body gap-2 p-5">
+                    <span class="text-xs uppercase tracking-[0.18em] text-base-content/50">{child.descendantNotes.length} notes</span>
+                    <strong class="text-lg">{child.label}</strong>
+                    <p class="text-sm leading-7 text-base-content/70">{child.description ?? "Nested folder page derived from the writing tree."}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section class="space-y-5">
+          <SectionHeading eyebrow="Notes" title="Entries directly inside this folder" />
+          {folderState?.directNotes.length ? (
+            <div class="grid gap-4 lg:grid-cols-2">
+              {folderState.directNotes.map((entry) => (
+                <NoteCard note={entry} showSection={false} />
+              ))}
+            </div>
+          ) : (
+            <div class="rounded-[1.75rem] border border-dashed border-base-300 bg-base-100/70 p-6 text-sm text-base-content/60">
+              No direct notes live here yet.
+            </div>
+          )}
+        </section>
       </div>
     )}
-
-    {type === "folder" && (
-      <>
-        <h2>Contents</h2>
-
-        <ul>
-          {children.map((child) => {
-            const childPath = child.id;
-            const childTitle =
-              child.data.title ??
-              childPath.split("/").pop();
-
-            return (
-              <li>
-                <a href={withBase("/" + childPath)}>
-                  {childTitle}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </>
-    )}
-  </article>
+  </div>
 </BaseLayout>

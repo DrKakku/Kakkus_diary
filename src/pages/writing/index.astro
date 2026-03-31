@@ -1,0 +1,108 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import KnowledgeGraph from "../../components/KnowledgeGraph.astro";
+import WritingSearch from "../../components/WritingSearch.astro";
+import SectionHeading from "../../components/ui/SectionHeading.astro";
+import NoteTimeline from "../../components/writing/NoteTimeline.astro";
+import { siteConfig } from "../../config/site.config";
+import { getSiteData } from "../../lib/site-data";
+
+const siteData = await getSiteData();
+const latestNotes = siteData.notes.slice(0, siteConfig.writingTimelineLimit);
+const popularTags = siteData.tags.slice(0, 10);
+const featuredSections = siteData.sections.slice(0, 4);
+const visibleFolders = siteData.folders.slice(0, 8);
+---
+
+<BaseLayout title="Writing" description="Writing hub and knowledge system" theme="writing" enableWritingEnhancers>
+  <section class="space-y-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Writing Hub</p>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-start">
+      <div class="space-y-4">
+        <h1 class="display-font max-w-4xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          Notes, ideas, and experiments organized like a living vault.
+        </h1>
+        <p class="max-w-2xl text-base leading-8 text-base-content/72">
+          This page stays search-first. The graph is still here, but it behaves like a tool now instead of dominating the whole screen.
+        </p>
+      </div>
+
+      <aside class="rounded-[1.75rem] border border-base-300 bg-base-100/70 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">How it works</p>
+        <div class="mt-3 space-y-3 text-sm leading-7 text-base-content/70">
+          <p>Sections come from your imported folders.</p>
+          <p>Tags and wiki links stay clickable across notes.</p>
+          <p>Missing note titles and dates now fall back to filename and path heuristics.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="mt-8">
+    <WritingSearch items={siteData.searchIndex} />
+  </section>
+
+  <section class="mt-8">
+    <KnowledgeGraph
+      title="Vault graph"
+      description="Explore the published vault without letting the graph take over the page."
+      graph={siteData.graph}
+      mode="global"
+      initialDepth={siteConfig.writing.globalGraphDepth}
+      showTags={siteConfig.writing.showTagsInGraph}
+      collapsible
+      initiallyOpen={siteConfig.writing.showLandingGraphByDefault}
+    />
+  </section>
+
+  <section class="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)]">
+    <div class="space-y-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+      <SectionHeading
+        eyebrow="Recent Notes"
+        title="A timeline instead of a wall of cards."
+        copy="The latest writing stays readable, spaced out, and easier to scan."
+      />
+      <NoteTimeline notes={latestNotes} />
+    </div>
+
+    <aside class="space-y-6">
+      <div class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+        <SectionHeading eyebrow="Sections" title="Folder-derived entry points." />
+        <div class="mt-5 space-y-3">
+          {featuredSections.map((section) => (
+            <a class="block rounded-2xl border border-base-300 bg-base-100/70 p-4 transition hover:border-primary/40 hover:shadow-sm" href={section.url}>
+              <div class="flex items-center justify-between gap-3">
+                <strong>{section.label}</strong>
+                <span class="text-xs text-base-content/50">{section.notes.length} notes</span>
+              </div>
+              <p class="mt-2 text-sm leading-6 text-base-content/68">{section.description}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Tags</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          {popularTags.map((tag) => (
+            <a class="badge badge-outline badge-lg" href={tag.url}>
+              {tag.label} • {tag.notes.length}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Folders</p>
+        <div class="mt-4 space-y-2">
+          {visibleFolders.map((folder) => (
+            <a class="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition hover:bg-base-200/70" href={folder.url}>
+              <span class="text-sm text-base-content/80">{folder.path}</span>
+              <span class="text-xs text-base-content/50">{folder.descendantNotes.length}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </aside>
+  </section>
+</BaseLayout>

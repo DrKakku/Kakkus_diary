@@ -1,139 +1,129 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getCollection } from "astro:content";
-import {
-  buildHierarchy,
-  getEntryPath,
-  getEntryTitle,
-  getMetadataBadges,
-  withBase,
-} from "../lib/content";
+import NoteCard from "../components/NoteCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import SectionHeading from "../components/ui/SectionHeading.astro";
+import ProjectTimeline from "../components/portfolio/ProjectTimeline.astro";
 import { siteConfig } from "../config/site.config";
+import { withBase } from "../lib/content";
+import { getSiteData } from "../lib/site-data";
 
-const entries = (await getCollection("entries"))
-  .map((entry) => ({
-    ...entry,
-    safePath: getEntryPath(entry),
-    safeTitle: getEntryTitle(entry),
-  }))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
-
-const hierarchy = buildHierarchy(entries);
-const latestEntries = entries.slice(0, siteConfig.recentLimit);
-
-const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
+const siteData = await getSiteData();
+const featuredProjects = siteData.featuredProjects.slice(0, 3);
+const featuredWriting = (siteData.featuredWriting.length > 0 ? siteData.featuredWriting : siteData.notes).slice(
+  0,
+  siteConfig.featuredWritingLimit,
+);
+const recentProjects = siteData.projects.slice(0, siteConfig.homeProjectTimelineLimit);
 ---
 
-<BaseLayout title="Home">
-  <section class="hero">
-    <div>
-      <p class="eyebrow">Obsidian vault → GitHub Pages</p>
-      <h1>Notes, experiments, and writing — preserved as hierarchy.</h1>
-      <p class="lead">My Adventures and Thoughts.</p>
+<BaseLayout title={siteConfig.siteName} description={siteConfig.siteDescription} theme="portfolio">
+  <section class="grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)] lg:items-end">
+    <div class="space-y-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">{siteConfig.hero.eyebrow}</p>
+      <div class="space-y-4">
+        <h1 class="display-font max-w-4xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          {siteConfig.hero.headline}
+        </h1>
+        <p class="max-w-2xl text-base leading-8 text-base-content/72 sm:text-lg">
+          {siteConfig.hero.lead}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <a class="btn btn-primary rounded-full px-6" href={withBase(siteConfig.hero.primaryCta.href)}>
+          {siteConfig.hero.primaryCta.label}
+        </a>
+        <a class="btn btn-outline rounded-full px-6" href={withBase(siteConfig.hero.secondaryCta.href)}>
+          {siteConfig.hero.secondaryCta.label}
+        </a>
+      </div>
     </div>
 
-    <aside class="hero-card">
-      <div class="hero-stat">
-        <strong>{entries.length}</strong>
-        <span>published entries</span>
-      </div>
-      <div class="hero-stat">
-        <strong>{uniqueTags.size}</strong>
-        <span>unique tags</span>
-      </div>
-      <div class="hero-stat">
-        <strong>{hierarchy.length}</strong>
-        <span>folders + files</span>
+    <aside class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">About</p>
+      <h2 class="display-font mt-3 text-2xl font-semibold">{siteConfig.profile.name}</h2>
+      <p class="mt-3 text-sm leading-7 text-base-content/72">{siteConfig.profile.intro}</p>
+      <div class="mt-5 flex flex-wrap gap-2">
+        {siteConfig.socialLinks.map((link) => (
+          <a
+            class="badge badge-outline badge-lg"
+            href={link.kind === "internal" ? withBase(link.href) : link.href}
+            target={link.kind === "external" ? "_blank" : undefined}
+            rel={link.kind === "external" ? "noreferrer" : undefined}
+          >
+            {link.label}
+          </a>
+        ))}
       </div>
     </aside>
   </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Content map</h2>
-      <p>Proto of every idea and topic scattered here.</p>
+  <section class="mt-12 space-y-6">
+    <SectionHeading
+      eyebrow="Featured Work"
+      title="A small set of projects with enough room to breathe."
+      copy="The homepage stays selective. Deeper experiments and smaller ideas can still live in the writing system or on the full projects page."
+      actionHref={withBase("/projects")}
+      actionLabel="All projects"
+    />
+    <div class="grid gap-5 lg:grid-cols-3">
+      {featuredProjects.map((project) => (
+        <ProjectCard project={project} featured />
+      ))}
     </div>
-
-    {hierarchy.length > 0 ? (
-      <ul class="hierarchy">
-        {hierarchy.map((row) => {
-          const title = row.entry?.data.title ?? row.path.split("/").pop() ?? "Untitled";
-
-          return (
-            <li
-              class:list={[
-                "hierarchy-row",
-                row.kind,
-                `depth-${row.depth}`,
-              ]}
-              style={`--depth:${row.depth};`}
-            >
-              <span class="icon">{row.kind === "folder" ? "📁" : "•"}</span>
-
-              {row.kind === "file" && row.entry ? (
-                <>
-                  <a class="file-link" href={withBase("/" + row.path)}>
-                    {title}
-                  </a>
-
-                  <span class="entry-inline-meta">
-                    {getMetadataBadges(row.entry.data).map((badge) => (
-                      <span class="tag">{badge.label}</span>
-                    ))}
-                  </span>
-                </>
-              ) : (
-                <span class="folder-label">{row.label}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    ) : (
-      <div class="empty-state">
-        <p>No imported notes yet.</p>
-        <p>
-          Guess i dont have anything to talk about at the moment
-        </p>
-      </div>
-    )}
   </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Whats Latest</h2>
-      <p>What did kakku think of now?</p>
-    </div>
-
-    {latestEntries.length > 0 ? (
-      <div class="card-grid">
-        {latestEntries.map((entry) => (
-          <article class={`entry-card ${entry.data.status ?? ""}`}>
-            <p class="entry-meta">
-              <span>{entry.data.date.toISOString().slice(0, 10)}</span>
-            </p>
-
-            <h3>
-              <a href={withBase("/" + entry.safePath)}>{entry.safeTitle}</a>
-            </h3>
-
-
-            <div class="tag-row">
-              {getMetadataBadges(entry.data).map((badge) => (
-                <span class="tag">{badge.label}</span>
-              ))}
-
-              {(entry.data.tags ?? []).map((tag) => (
-                <span class="tag tag-muted">{tag}</span>
-              ))}
-            </div>
-          </article>
+  <section class="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
+    <div class="space-y-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+      <SectionHeading
+        eyebrow="Writing Bridge"
+        title="The notes stay close to the work."
+        copy="Writing is where project thinking, experiments, and unpolished ideas accumulate before they turn into a cleaner product surface."
+        actionHref={withBase("/writing")}
+        actionLabel="Open writing"
+      />
+      <div class="grid gap-4 md:grid-cols-3">
+        {featuredWriting.map((note) => (
+          <NoteCard note={note} showSection />
         ))}
       </div>
-    ) : (
-      <div class="empty-state">
-        <p>He does not like to talk a lot .</p>
+    </div>
+
+    <aside class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Quick access</p>
+      <div class="mt-4 space-y-3">
+        {siteData.sections.slice(0, 3).map((section) => (
+          <a class="block rounded-2xl border border-base-300 bg-base-100/70 p-4 transition hover:border-primary/40 hover:shadow-sm" href={section.url}>
+            <div class="flex items-center justify-between gap-3">
+              <strong>{section.label}</strong>
+              <span class="text-xs text-base-content/50">{section.notes.length} notes</span>
+            </div>
+            <p class="mt-2 text-sm leading-6 text-base-content/68">{section.description}</p>
+          </a>
+        ))}
       </div>
-    )}
+    </aside>
+  </section>
+
+  <section class="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
+    <div class="space-y-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+      <SectionHeading eyebrow="Recent Projects" title="A cleaner timeline of what is active right now." />
+      <ProjectTimeline projects={recentProjects} />
+    </div>
+
+    <aside class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Contact</p>
+      <h2 class="display-font mt-3 text-2xl font-semibold">Portfolio, resume, and public surfaces.</h2>
+      <div class="mt-4 space-y-4 text-sm leading-7 text-base-content/72">
+        {siteConfig.profile.about.map((paragraph) => <p>{paragraph}</p>)}
+        <p>{siteConfig.profile.location} • {siteConfig.profile.availability}</p>
+      </div>
+      <div class="mt-5 flex flex-wrap gap-3">
+        {siteConfig.quickLinks.map((link) => (
+          <a class="btn btn-sm btn-ghost rounded-full" href={withBase(link.href)}>{link.label}</a>
+        ))}
+      </div>
+    </aside>
   </section>
 </BaseLayout>

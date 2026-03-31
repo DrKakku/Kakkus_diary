@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SectionHeading from "../../../components/ui/SectionHeading.astro";
+import NoteTimeline from "../../../components/writing/NoteTimeline.astro";
+import { getSiteData } from "../../../lib/site-data";
+
+export async function getStaticPaths() {
+  const siteData = await getSiteData();
+
+  return siteData.tags.map((tag) => ({
+    params: { tag: tag.slug },
+    props: { tagSlug: tag.slug },
+  }));
+}
+
+const siteData = await getSiteData();
+const { tagSlug } = Astro.props as { tagSlug: string };
+const tag = siteData.tagsBySlug.get(tagSlug);
+
+if (!tag) {
+  throw new Error(`Unknown tag page: ${tagSlug}`);
+}
+---
+
+<BaseLayout title={`${tag.label} Tag`} description={`Notes tagged with ${tag.label}`} theme="writing" enableWritingEnhancers>
+  <section class="rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Tag Archive</p>
+    <h1 class="display-font mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">#{tag.label}</h1>
+    <p class="mt-4 max-w-2xl text-base leading-8 text-base-content/72">
+      {tag.notes.length} note{tag.notes.length === 1 ? "" : "s"} connect through this topic.
+    </p>
+  </section>
+
+  <section class="mt-12 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <SectionHeading eyebrow="Linked Notes" title={`Everything tagged with ${tag.label}.`} />
+    <div class="mt-6">
+      <NoteTimeline notes={tag.notes} />
+    </div>
+  </section>
+</BaseLayout>

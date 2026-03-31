@@ -1,0 +1,27 @@
+---
+const {
+  eyebrow,
+  title,
+  copy,
+  actionHref,
+  actionLabel,
+} = Astro.props as {
+  eyebrow: string;
+  title: string;
+  copy?: string;
+  actionHref?: string;
+  actionLabel?: string;
+};
+---
+
+<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div class="space-y-2">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">{eyebrow}</p>
+    <h2 class="display-font text-3xl font-semibold tracking-tight">{title}</h2>
+    {copy && <p class="max-w-2xl text-sm leading-7 text-base-content/70">{copy}</p>}
+  </div>
+
+  {actionHref && actionLabel && (
+    <a class="btn btn-ghost btn-sm self-start sm:self-auto" href={actionHref}>{actionLabel}</a>
+  )}
+</div>

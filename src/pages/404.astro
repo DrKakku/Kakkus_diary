@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { withBase } from "../lib/content";
+---
+
+<BaseLayout title="Not Found" description="This page does not exist yet." theme="portfolio">
+  <section class="hero-panel hero-portfolio">
+    <div class="hero-copy">
+      <p class="eyebrow">404</p>
+      <h1>This path has not been mapped into the public vault yet.</h1>
+      <p class="hero-lead">
+        Try the homepage, the projects area, or the writing hub to get back into the site.
+      </p>
+
+      <div class="action-row">
+        <a class="button-link" href={withBase("/")}>Go Home</a>
+        <a class="button-link button-link-secondary" href={withBase("/writing")}>Open Writing</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

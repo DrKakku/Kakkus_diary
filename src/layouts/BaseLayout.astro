@@ -6,27 +6,183 @@ import { withBase } from "../lib/content";
 const {
   title = siteConfig.siteName,
   description = siteConfig.siteDescription,
-} = Astro.props;
+  theme = "portfolio",
+  enableWritingEnhancers = false,
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  theme?: "portfolio" | "writing";
+  enableWritingEnhancers?: boolean;
+};
+
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+const defaultTheme =
+  siteConfig.appearance.defaultMode === "dark"
+    ? siteConfig.appearance.themes.dark
+    : siteConfig.appearance.themes.light;
+
+function isActive(href: string) {
+  if (href === "/") {
+    return currentPath === (withBase("/").replace(/\/$/, "") || "/");
+  }
+
+  const target = withBase(href).replace(/\/$/, "") || "/";
+  return currentPath === target || currentPath.startsWith(`${target}/`);
+}
 ---
 
 <!doctype html>
-<html lang="en">
+<html
+  lang="en"
+  data-theme={defaultTheme}
+  data-color-mode={siteConfig.appearance.defaultMode}
+  data-default-mode={siteConfig.appearance.defaultMode}
+  data-light-theme={siteConfig.appearance.themes.light}
+  data-dark-theme={siteConfig.appearance.themes.dark}
+  data-accent={siteConfig.appearance.accent}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <script is:inline>
+      (() => {
+        const storageKey = "kakku-theme-mode";
+        const accentKey = "kakku-theme-accent";
+        const defaultMode = {JSON.stringify(siteConfig.appearance.defaultMode)};
+        const lightTheme = {JSON.stringify(siteConfig.appearance.themes.light)};
+        const darkTheme = {JSON.stringify(siteConfig.appearance.themes.dark)};
+        const defaultAccent = {JSON.stringify(siteConfig.appearance.accent)};
+
+        try {
+          const storedMode = window.localStorage.getItem(storageKey);
+          const mode = storedMode === "light" || storedMode === "dark" ? storedMode : defaultMode;
+          document.documentElement.dataset.theme = mode === "dark" ? darkTheme : lightTheme;
+          document.documentElement.dataset.colorMode = mode;
+          document.documentElement.dataset.accent =
+            window.localStorage.getItem(accentKey) || defaultAccent;
+        } catch {
+          document.documentElement.dataset.theme = defaultMode === "dark" ? darkTheme : lightTheme;
+          document.documentElement.dataset.colorMode = defaultMode;
+          document.documentElement.dataset.accent = defaultAccent;
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body>
-    <div class="shell">
-      <header class="topbar">
-        <a class="brand" href={withBase("/")}>{siteConfig.siteName}</a>
-        <p class="subtitle">{siteConfig.siteDescription}</p>
+  <body class="min-h-screen bg-base-100 text-base-content antialiased">
+    <div class="site-gradient min-h-screen">
+      <header class="sticky top-0 z-40 border-b border-base-300/70 bg-base-100/85 backdrop-blur">
+        <div class="navbar mx-auto max-w-6xl px-4 py-2 sm:px-6 lg:px-8">
+          <div class="navbar-start">
+            <a href={withBase("/")} class="flex items-center gap-3 rounded-full px-2 py-1 transition hover:bg-base-200">
+              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-content shadow-sm">
+                {siteConfig.moniker.slice(0, 1)}
+              </span>
+              <span class="hidden sm:block">
+                <span class="block text-sm font-semibold">{siteConfig.siteName}</span>
+                <span class="block text-xs text-base-content/60">{siteConfig.profile.location}</span>
+              </span>
+            </a>
+          </div>
+
+          <div class="navbar-center hidden md:flex">
+            <ul class="menu menu-horizontal gap-1 rounded-full bg-base-100/70 px-2 py-1 shadow-sm ring-1 ring-base-300/70">
+              {siteConfig.navigation.map((item) => (
+                <li>
+                  <a
+                    href={withBase(item.href)}
+                    class:list={[
+                      "rounded-full px-4",
+                      isActive(item.href) ? "bg-primary text-primary-content" : "text-base-content/70 hover:bg-base-200",
+                    ]}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="navbar-end hidden gap-2 md:flex">
+            <button class="btn btn-ghost btn-sm rounded-full" type="button" data-theme-toggle>
+              <span data-theme-toggle-label>Light mode</span>
+            </button>
+            {siteConfig.socialLinks.slice(0, 2).map((link) => (
+              <a class="btn btn-ghost btn-sm" href={link.href} target="_blank" rel="noreferrer">
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          <div class="navbar-end md:hidden">
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+              </div>
+              <ul tabindex="0" class="menu dropdown-content z-[1] mt-3 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl">
+                {siteConfig.navigation.map((item) => (
+                  <li><a href={withBase(item.href)}>{item.label}</a></li>
+                ))}
+                <li>
+                  <button type="button" data-theme-toggle-mobile>
+                    <span data-theme-toggle-label-mobile>Light mode</span>
+                  </button>
+                </li>
+                <li class="menu-title"><span>Connect</span></li>
+                {siteConfig.socialLinks.map((link) => (
+                  <li><a href={link.href} target="_blank" rel="noreferrer">{link.label}</a></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <main class="main">
+      <main class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <slot />
       </main>
+
+      <footer class="border-t border-base-300/70 bg-base-100/70">
+        <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <div class="grid gap-6 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
+            <div class="space-y-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Built from notes</p>
+              <h2 class="display-font text-3xl font-semibold">{siteConfig.profile.name}</h2>
+              <p class="max-w-2xl text-sm leading-7 text-base-content/70">{siteConfig.footer.manifesto}</p>
+              <p class="text-sm text-base-content/55">{siteConfig.footer.caption}</p>
+            </div>
+
+            <div class="space-y-4 lg:justify-self-end">
+              <div class="flex flex-wrap gap-2">
+                {siteConfig.quickLinks.map((link) => (
+                  <a class="btn btn-sm btn-ghost rounded-full" href={withBase(link.href)}>{link.label}</a>
+                ))}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                {siteConfig.socialLinks.map((link) => (
+                  <a class="btn btn-sm btn-outline rounded-full" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
+
+    {enableWritingEnhancers && <script>
+      import "../scripts/writing-enhancers";
+    </script>}
+    <script>
+      import "../scripts/theme-controller";
+    </script>
   </body>
 </html>
