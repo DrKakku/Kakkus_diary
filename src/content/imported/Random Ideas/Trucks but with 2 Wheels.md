@@ -19,7 +19,7 @@ How India has molded the Bikes to be everything they can be while being cheaper 
 we see soo many variations of 2 wheelers which might seem impractical, but it WORKS!!
 
 
-<iframe src="https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fwww.tradeindia.com%2Fproducts%2Fheavy-duty-e-bikes-8626439.html&ved=0CBoQ3YkBahcKEwiYwZXu6byTAxUAAAAAHQAAAAAQCA&opi=89978449" width="100%" height="500" frameborder="0"></iframe>
+<iframe src="https://www.tradeindia.com/products/heavy-duty-e-bikes-8626439.html" width="100%" height="500" frameborder="0"></iframe>
 
 ## Tags (inline)
 #Bikes #India #TheoryCrafting #World

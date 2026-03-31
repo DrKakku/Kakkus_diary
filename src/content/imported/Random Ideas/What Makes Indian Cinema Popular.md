@@ -1,5 +1,5 @@
 ---
-title: What Makes Indian Cenima Popular
+title: What Makes Indian Cinema Popular
 date: 2026-03-26
 tags:
   - TheoryCrafting
@@ -9,7 +9,7 @@ type: blog
 status: Work in Progress
 ---
 
-# What Makes Indian Cenima Popular
+# What Makes Indian Cinema Popular
 
 ## Summary
 How similar are bollywood movies to western musicals

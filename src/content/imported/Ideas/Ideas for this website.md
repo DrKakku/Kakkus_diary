@@ -21,8 +21,8 @@ status: idea
 - explore if we can have indocument links similar to obsidian so that we can directly send people to another page with simple mentions from our side like this [[Document]]
 
 ## Known bugs at the time  2026-03-26
-- the links are broken because the leading slash is not added to the url so need to fix that, maby now as its a major break
-- the breadcrumbs are broken also as there is no page where the breadcrumbs lead to (Have a default auto generated page for the directory with an option to add a readme or index for the same where the content from the readme/index will be populated at the top and relavent files will be mentioned at the botton in a similar hierchy way)
+- ~~the links are broken because the leading slash is not added to the url so need to fix that, maby now as its a major break~~
+- ~~the breadcrumbs are broken also as there is no page where the breadcrumbs lead to (Have a default auto generated page for the directory with an option to add a readme or index for the same where the content from the readme/index will be populated at the top and relavent files will be mentioned at the botton in a similar hierchy way)~~
 - the github actions dont trigger automatically for build after the sync happens.
 
 ## Expantion on the ideas 
