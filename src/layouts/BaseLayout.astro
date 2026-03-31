@@ -32,7 +32,15 @@ function isActive(href: string) {
 ---
 
 <!doctype html>
-<html lang="en" data-theme={defaultTheme} data-color-mode={siteConfig.appearance.defaultMode} data-accent={siteConfig.appearance.accent}>
+<html
+  lang="en"
+  data-theme={defaultTheme}
+  data-color-mode={siteConfig.appearance.defaultMode}
+  data-default-mode={siteConfig.appearance.defaultMode}
+  data-light-theme={siteConfig.appearance.themes.light}
+  data-dark-theme={siteConfig.appearance.themes.dark}
+  data-accent={siteConfig.appearance.accent}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -173,47 +181,8 @@ function isActive(href: string) {
     {enableWritingEnhancers && <script>
       import "../scripts/writing-enhancers";
     </script>}
-    <script is:inline>
-      (() => {
-        const storageKey = "kakku-theme-mode";
-        const lightTheme = {JSON.stringify(siteConfig.appearance.themes.light)};
-        const darkTheme = {JSON.stringify(siteConfig.appearance.themes.dark)};
-        const defaultMode = {JSON.stringify(siteConfig.appearance.defaultMode)};
-        const root = document.documentElement;
-
-        const applyMode = (mode) => {
-          root.dataset.colorMode = mode;
-          root.dataset.theme = mode === "dark" ? darkTheme : lightTheme;
-          document.querySelectorAll("[data-theme-toggle-label], [data-theme-toggle-label-mobile]").forEach((label) => {
-            label.textContent = mode === "dark" ? "Light mode" : "Dark mode";
-          });
-        };
-
-        let mode = root.dataset.colorMode === "light" || root.dataset.colorMode === "dark"
-          ? root.dataset.colorMode
-          : defaultMode;
-
-        try {
-          const storedMode = window.localStorage.getItem(storageKey);
-          if (storedMode === "light" || storedMode === "dark") {
-            mode = storedMode;
-          }
-        } catch {}
-
-        applyMode(mode);
-
-        const toggle = () => {
-          mode = mode === "dark" ? "light" : "dark";
-          applyMode(mode);
-          try {
-            window.localStorage.setItem(storageKey, mode);
-          } catch {}
-        };
-
-        document.querySelectorAll("[data-theme-toggle], [data-theme-toggle-mobile]").forEach((button) => {
-          button.addEventListener("click", toggle);
-        });
-      })();
+    <script>
+      import "../scripts/theme-controller";
     </script>
   </body>
 </html>

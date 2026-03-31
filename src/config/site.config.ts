@@ -13,7 +13,7 @@ export const siteConfig = {
     accent: "cyan",
     themes: {
       light: "corporate",
-      dark: "business",
+      dark: "dim",
     },
   },
   profile: {
@@ -66,7 +66,7 @@ export const siteConfig = {
     globalGraphDepth: 4,
     localGraphDepth: 2,
     showTagsInGraph: true,
-    showLandingGraphByDefault: false,
+    showLandingGraphByDefault: true,
   },
   sectionOverrides: {
     ideas: {

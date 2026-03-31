@@ -29,9 +29,13 @@ type StoredGraphState = {
   showTags: boolean;
   depth: number;
   section: string;
+  gravity: number;
+  springLength: number;
 };
 
 const sectionColors = ["#2563eb", "#0f766e", "#9333ea", "#d97706", "#dc2626", "#0891b2"];
+const defaultGravity = 5200;
+const defaultSpringLength = 145;
 
 function initKnowledgeGraph(host: HTMLElement) {
   if (host.dataset.graphReady === "true") return;
@@ -43,6 +47,8 @@ function initKnowledgeGraph(host: HTMLElement) {
   const depthInput = host.querySelector<HTMLInputElement>("[data-role='depth']");
   const tagsInput = host.querySelector<HTMLInputElement>("[data-role='show-tags']");
   const sectionInput = host.querySelector<HTMLSelectElement>("[data-role='section-filter']");
+  const gravityInput = host.querySelector<HTMLInputElement>("[data-role='gravity']");
+  const springLengthInput = host.querySelector<HTMLInputElement>("[data-role='spring-length']");
   const fitButton = host.querySelector<HTMLButtonElement>("[data-role='fit']");
   const resetButton = host.querySelector<HTMLButtonElement>("[data-role='reset']");
   const detailsHost = host.closest("details");
@@ -61,12 +67,16 @@ function initKnowledgeGraph(host: HTMLElement) {
     showTags: defaultShowTags,
     depth: defaultDepth,
     section: "all",
+    gravity: defaultGravity,
+    springLength: defaultSpringLength,
   });
 
   searchInput.value = state.search;
   tagsInput.checked = state.showTags;
   if (depthInput) depthInput.value = String(state.depth);
   if (sectionInput) sectionInput.value = state.section;
+  if (gravityInput) gravityInput.value = String(state.gravity);
+  if (springLengthInput) springLengthInput.value = String(state.springLength);
 
   const adjacency = buildAdjacency(rawGraph.links);
   const nodeLookup = new Map(rawGraph.nodes.map((node) => [node.id, node]));
@@ -82,6 +92,8 @@ function initKnowledgeGraph(host: HTMLElement) {
       showTags: tagsInput.checked,
       depth: Number(depthInput?.value || defaultDepth),
       section: sectionInput?.value || "all",
+      gravity: Number(gravityInput?.value || defaultGravity),
+      springLength: Number(springLengthInput?.value || defaultSpringLength),
     };
 
     window.localStorage.setItem(stateKey, JSON.stringify(nextState));
@@ -183,8 +195,8 @@ function initKnowledgeGraph(host: HTMLElement) {
           enabled: true,
           stabilization: { iterations: 160, fit: true },
           barnesHut: {
-            gravitationalConstant: -5200,
-            springLength: 145,
+            gravitationalConstant: -Number(gravityInput?.value || defaultGravity),
+            springLength: Number(springLengthInput?.value || defaultSpringLength),
             springConstant: 0.032,
             avoidOverlap: 0.35,
           },
@@ -227,6 +239,8 @@ function initKnowledgeGraph(host: HTMLElement) {
   tagsInput.addEventListener("change", rerender);
   depthInput?.addEventListener("input", rerender);
   sectionInput?.addEventListener("change", rerender);
+  gravityInput?.addEventListener("input", rerender);
+  springLengthInput?.addEventListener("input", rerender);
 
   if (fitButton) {
     fitButton.onclick = () => network?.fit({ animation: { duration: 240 } });
@@ -238,6 +252,8 @@ function initKnowledgeGraph(host: HTMLElement) {
       tagsInput.checked = defaultShowTags;
       if (depthInput) depthInput.value = String(defaultDepth);
       if (sectionInput) sectionInput.value = "all";
+      if (gravityInput) gravityInput.value = String(defaultGravity);
+      if (springLengthInput) springLengthInput.value = String(defaultSpringLength);
       rerender();
     };
   }

@@ -13,10 +13,22 @@
 
 html[data-color-mode="light"] {
   color-scheme: light;
+  --color-base-100: #f7fafc;
+  --color-base-200: #edf2f7;
+  --color-base-300: #d6deea;
+  --color-base-content: #172033;
+  --color-neutral: #dde6f1;
+  --color-neutral-content: #172033;
 }
 
 html[data-color-mode="dark"] {
   color-scheme: dark;
+  --color-base-100: #151b24;
+  --color-base-200: #1c2430;
+  --color-base-300: #2c3747;
+  --color-base-content: #e7eef8;
+  --color-neutral: #111720;
+  --color-neutral-content: #e7eef8;
 }
 
 html {
@@ -37,17 +49,63 @@ body {
 }
 
 .site-gradient {
+  position: relative;
+  overflow: clip;
   background:
     radial-gradient(circle at top left, rgb(59 130 246 / 0.14), transparent 24%),
     radial-gradient(circle at top right, rgb(251 191 36 / 0.1), transparent 22%),
     linear-gradient(180deg, rgb(248 250 252 / 0.96), rgb(241 245 249 / 0.98));
 }
 
-[data-theme="business"] .site-gradient {
+html[data-color-mode="dark"] .site-gradient {
   background:
-    radial-gradient(circle at top left, rgb(56 189 248 / 0.14), transparent 24%),
-    radial-gradient(circle at top right, rgb(168 85 247 / 0.12), transparent 20%),
-    linear-gradient(180deg, rgb(10 15 28 / 0.98), rgb(14 20 36 / 0.98));
+    radial-gradient(circle at top left, rgb(34 211 238 / 0.08), transparent 24%),
+    radial-gradient(circle at top right, rgb(125 211 252 / 0.08), transparent 20%),
+    linear-gradient(180deg, rgb(8 11 18 / 0.98), rgb(11 15 24 / 0.99));
+}
+
+html[data-color-mode="dark"] body {
+  background: #090d14;
+  color: #e6edf7;
+}
+
+html[data-color-mode="light"] body {
+  background: #eef3f9;
+  color: #172033;
+}
+
+.site-gradient::before,
+.site-gradient::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(50px);
+  opacity: 0.45;
+  animation: float-drift 18s ease-in-out infinite;
+}
+
+.site-gradient::before {
+  top: 8rem;
+  left: 4vw;
+  width: 16rem;
+  height: 16rem;
+  background: radial-gradient(circle, rgb(56 189 248 / 0.18), transparent 68%);
+}
+
+.site-gradient::after {
+  right: 6vw;
+  bottom: 10vh;
+  width: 20rem;
+  height: 20rem;
+  background: radial-gradient(circle, rgb(14 165 233 / 0.16), transparent 70%);
+  animation-duration: 22s;
+}
+
+html[data-color-mode="light"] .site-gradient::before,
+html[data-color-mode="light"] .site-gradient::after {
+  opacity: 0.25;
 }
 
 html[data-accent="cyan"] {
@@ -78,10 +136,6 @@ html[data-accent="rose"] {
   @apply prose prose-slate max-w-none;
 }
 
-[data-theme="business"] .article-prose {
-  @apply prose-invert;
-}
-
 .article-prose a,
 .article-prose .wikilink {
   @apply text-primary underline decoration-primary/40 underline-offset-4;
@@ -103,6 +157,118 @@ html[data-accent="rose"] {
 .plugin-card,
 .note-embed {
   @apply border border-base-300 bg-base-100/80 rounded-2xl p-4 shadow-sm;
+}
+
+html[data-color-mode="dark"] .article-prose {
+  color: #d9e2f0;
+}
+
+html[data-color-mode="dark"] .article-prose :is(h1, h2, h3, h4, h5, h6, strong, th) {
+  color: #f8fbff;
+}
+
+html[data-color-mode="dark"] .article-prose :is(p, li, ul, ol, td, blockquote, code, em) {
+  color: #d9e2f0;
+}
+
+html[data-color-mode="dark"] :is(.plugin-card, .note-embed, .dataview-card, .article-prose table) {
+  background: rgb(24 29 39 / 0.88);
+  color: #e8eef8;
+}
+
+html[data-color-mode="dark"] :is(
+  .bg-base-100\/95,
+  .bg-base-100\/85,
+  .bg-base-100\/80,
+  .bg-base-100\/75,
+  .bg-base-100\/70,
+  .bg-base-100
+) {
+  background-color: rgb(24 29 39 / 0.84) !important;
+  color: #e6edf7 !important;
+  border-color: rgb(148 163 184 / 0.16) !important;
+}
+
+html[data-color-mode="dark"] :is(.bg-base-200, .bg-base-200\/70, .bg-base-200\/80, .bg-neutral, .bg-neutral\/95) {
+  background-color: rgb(17 23 32 / 0.95) !important;
+  color: #e6edf7 !important;
+  border-color: rgb(148 163 184 / 0.18) !important;
+}
+
+html[data-color-mode="dark"] :is(
+  .text-base-content,
+  .text-base-content\/50,
+  .text-base-content\/55,
+  .text-base-content\/60,
+  .text-base-content\/68,
+  .text-base-content\/70,
+  .text-base-content\/72
+) {
+  color: rgb(203 213 225 / 0.82) !important;
+}
+
+html[data-color-mode="dark"] :is(.btn, .input, .select, .textarea, .toggle, .menu, .navbar, .dropdown-content, .card) {
+  color: #e6edf7;
+}
+
+html[data-color-mode="dark"] :is(.input, .select, .textarea) {
+  background-color: rgb(18 24 34 / 0.92);
+  border-color: rgb(96 116 139 / 0.34);
+}
+
+html[data-color-mode="dark"] :is(.btn-ghost, .btn-outline) {
+  border-color: rgb(96 116 139 / 0.3);
+}
+
+html[data-color-mode="dark"] .article-prose table :is(th, td) {
+  color: #e8eef8;
+  border-color: rgb(148 163 184 / 0.16);
+}
+
+html[data-color-mode="light"] .article-prose {
+  color: #1f2937;
+}
+
+html[data-color-mode="light"] .article-prose :is(h1, h2, h3, h4, h5, h6, strong, th) {
+  color: #0f172a;
+}
+
+html[data-color-mode="light"] .article-prose :is(p, li, ul, ol, td, blockquote, code, em) {
+  color: #334155;
+}
+
+html[data-color-mode="light"] :is(
+  .bg-base-100\/95,
+  .bg-base-100\/85,
+  .bg-base-100\/80,
+  .bg-base-100\/75,
+  .bg-base-100\/70,
+  .bg-base-100
+) {
+  background-color: rgb(255 255 255 / 0.82) !important;
+  color: #172033 !important;
+}
+
+html[data-color-mode="light"] :is(.bg-base-200, .bg-base-200\/70, .bg-base-200\/80, .bg-neutral, .bg-neutral\/95) {
+  background-color: rgb(232 238 246 / 0.95) !important;
+  color: #172033 !important;
+  border-color: rgb(186 200 219 / 0.65) !important;
+}
+
+html[data-color-mode="light"] :is(
+  .text-base-content,
+  .text-base-content\/50,
+  .text-base-content\/55,
+  .text-base-content\/60,
+  .text-base-content\/68,
+  .text-base-content\/70,
+  .text-base-content\/72
+) {
+  color: rgb(51 65 85 / 0.86) !important;
+}
+
+html[data-color-mode="light"] :is(.btn, .input, .select, .textarea, .toggle, .menu, .navbar, .dropdown-content, .card) {
+  color: #172033;
 }
 
 .plugin-warning {
@@ -153,4 +319,15 @@ html[data-accent="rose"] {
 
 .palette-results[hidden] {
   display: none;
+}
+
+@keyframes float-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(1.5rem, -1.75rem, 0) scale(1.05);
+  }
 }

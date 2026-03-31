@@ -65,6 +65,16 @@ const sections = Array.from(new Set(graph.nodes.map((node) => node.section).filt
             <input class="input input-bordered rounded-2xl" type="search" placeholder="Find a note or tag you remember..." />
           </label>
 
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Node force</span>
+            <input class="range range-primary" type="range" min="2000" max="12000" step="250" value="5200" data-role="gravity" />
+          </label>
+
+          <label class="form-control min-w-40">
+            <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Link length</span>
+            <input class="range range-primary" type="range" min="80" max="260" step="5" value="145" data-role="spring-length" />
+          </label>
+
           {mode === "global" && (
             <label class="form-control min-w-40">
               <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Section</span>
@@ -132,6 +142,16 @@ const sections = Array.from(new Set(graph.nodes.map((node) => node.section).filt
         <label class="form-control min-w-56">
           <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Search</span>
           <input class="input input-bordered rounded-2xl" type="search" placeholder="Find a note or tag you remember..." />
+        </label>
+
+        <label class="form-control min-w-40">
+          <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Node force</span>
+          <input class="range range-primary" type="range" min="2000" max="12000" step="250" value="5200" data-role="gravity" />
+        </label>
+
+        <label class="form-control min-w-40">
+          <span class="label pb-1 text-xs uppercase tracking-[0.18em] text-base-content/50">Link length</span>
+          <input class="range range-primary" type="range" min="80" max="260" step="5" value="145" data-role="spring-length" />
         </label>
 
         {mode === "global" && (

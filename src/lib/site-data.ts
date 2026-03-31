@@ -300,9 +300,12 @@ async function buildSiteData(): Promise<SiteData> {
 
   for (const note of notes) {
     const parsedLinks = parseWikiLinks(note.entry.body ?? "");
-    note.links = parsedLinks.map((link) =>
+    const wikiLinks = parsedLinks.map((link) =>
       resolveWikiLink(link.target + (link.label ? `|${link.label}` : ""), note, link.embed),
     );
+    const structuredLinks = collectStructuredNoteLinks(note, noteLookup, warningCache);
+    const dataviewLinks = collectDataviewCollectionLinks(note, notes);
+    note.links = dedupeResolvedLinks([...wikiLinks, ...structuredLinks, ...dataviewLinks]);
   }
 
   const backlinks = new Map<string, NoteRecord[]>();
@@ -550,6 +553,62 @@ function parseWikiLinks(body: string) {
   return links;
 }
 
+function collectStructuredNoteLinks(
+  note: NoteRecord,
+  noteLookup: Map<string, NoteRecord[]>,
+  warningCache: Set<string>,
+) {
+  const keys = Object.keys(note.fields).filter((key) => /(^|_)(note|notes|link|links)$/i.test(key));
+  const references = keys.flatMap((key) => flattenReferenceCandidates(note.fields[key]));
+  const links: ResolvedLink[] = [];
+
+  for (const reference of references) {
+    const candidate = sanitizeReference(reference);
+    if (!candidate) continue;
+
+    const target = resolveNoteTarget(noteLookup, candidate, warningCache, candidate);
+    if (!target || target.path === note.path) continue;
+
+    links.push({
+      raw: candidate,
+      label: target.title,
+      href: target.url,
+      type: "note",
+      embed: false,
+      path: target.path,
+    });
+  }
+
+  return links;
+}
+
+function collectDataviewCollectionLinks(note: NoteRecord, notes: NoteRecord[]) {
+  const folders = extractDataviewFolders(note.entry.body ?? "");
+  const links: ResolvedLink[] = [];
+
+  for (const folder of folders) {
+    for (const candidate of notes) {
+      if (candidate.path === note.path) continue;
+      if (
+        candidate.vaultFolder === folder ||
+        candidate.vaultFolder.startsWith(`${folder}/`) ||
+        candidate.vaultPath.startsWith(`${folder}/`)
+      ) {
+        links.push({
+          raw: folder,
+          label: candidate.title,
+          href: candidate.url,
+          type: "note",
+          embed: false,
+          path: candidate.path,
+        });
+      }
+    }
+  }
+
+  return links;
+}
+
 type ResolveParams = {
   rawTarget: string;
   currentNote: NoteRecord;
@@ -662,6 +721,17 @@ function resolveNoteTarget(
   return results[0];
 }
 
+function extractDataviewFolders(body: string) {
+  const folders = new Set<string>();
+
+  for (const match of body.matchAll(/FROM\s+"([^"]+)"/gi)) {
+    const normalized = normalizeVaultPath(match[1]);
+    if (normalized) folders.add(normalized);
+  }
+
+  return [...folders];
+}
+
 function unresolvedLink(rawTarget: string): ResolvedLink {
   return {
     raw: rawTarget,
@@ -726,6 +796,17 @@ function dedupeNotes(notes: NoteRecord[]) {
   });
 }
 
+function dedupeResolvedLinks(links: ResolvedLink[]) {
+  const seen = new Set<string>();
+
+  return links.filter((link) => {
+    const key = `${link.type}:${link.path ?? link.href ?? link.raw}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function buildGraph(notes: NoteRecord[], tags: TagRecord[]) {
   const nodeMap = new Map<string, GraphNode>();
   const edgeMap = new Map<string, GraphLink>();
@@ -786,6 +867,26 @@ function buildGraph(notes: NoteRecord[], tags: TagRecord[]) {
     nodes: [...nodeMap.values()],
     links: [...edgeMap.values()],
   };
+}
+
+function flattenReferenceCandidates(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => flattenReferenceCandidates(item));
+  }
+
+  return [];
+}
+
+function sanitizeReference(value: string) {
+  return value
+    .replace(/^\s*-\s*/, "")
+    .replace(/^\[\[/, "")
+    .replace(/\]\]$/, "")
+    .trim();
 }
 
 function extractHeadings(body: string) {
