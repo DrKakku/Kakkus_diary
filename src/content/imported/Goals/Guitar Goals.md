@@ -23,9 +23,6 @@ The song is considered complete when you have a handle on the
 - leads
 - anything else which makes it complete
 
-# List of songs
-
-# 🎸 My Guitar Progress System
 
 > A structured roadmap for my guitar journey.  
 > I track progress, attach my recordings, and level up intentionally.
@@ -86,17 +83,7 @@ The song is considered complete when you have a handle on the
   🎧 [Learn](https://www.youtube.com/results?search_query=The+Chain+Fleetwood+Mac+guitar+lesson)  
   🎥 My Cover: _[Add my link here]_  
 
----
 
-# 📊 My Progress Tracker
-
-- Level 1: ⬜⬜⬜⬜⬜⬜  
-- Level 2: ⬜⬜⬜⬜  
-- Level 3: ⬜  
-
----
-
-# 🎥 My Recording System
 
 ## When I complete a song:
 - [x] Mark checkbox
