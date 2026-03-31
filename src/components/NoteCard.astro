@@ -1,0 +1,38 @@
+---
+import { formatDate, getMetadataBadges, getStatusTone, withBase } from "../lib/content";
+import type { NoteRecord } from "../lib/site-data";
+
+const {
+  note,
+  showSection = false,
+  compact = false,
+} = Astro.props as {
+  note: NoteRecord;
+  showSection?: boolean;
+  compact?: boolean;
+};
+
+const badges = getMetadataBadges(note.entry.data);
+---
+
+<article class:list={["note-card", compact && "compact", getStatusTone(note.entry.data.status)]}>
+  <div class="card-topline">
+    {showSection && <span class="card-eyebrow">{note.sectionLabel}</span>}
+    <span class="card-date">{formatDate(note.entry.data.date)}</span>
+  </div>
+
+  <h3><a href={note.url}>{note.title}</a></h3>
+  <p>{note.summary}</p>
+
+  <div class="chip-row">
+    {badges.map((badge) => (
+      <span class:list={["chip", badge.tone]}>{badge.label}</span>
+    ))}
+
+    {note.tags.slice(0, compact ? 2 : 4).map((tag) => (
+      <a class="chip chip-muted" href={withBase(`/writing/tags/${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`)}>
+        {tag}
+      </a>
+    ))}
+  </div>
+</article>

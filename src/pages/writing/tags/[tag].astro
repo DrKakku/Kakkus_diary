@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import NoteCard from "../../../components/NoteCard.astro";
+import { getSiteData } from "../../../lib/site-data";
+
+export async function getStaticPaths() {
+  const siteData = await getSiteData();
+
+  return siteData.tags.map((tag) => ({
+    params: { tag: tag.slug },
+    props: { tagSlug: tag.slug },
+  }));
+}
+
+const siteData = await getSiteData();
+const { tagSlug } = Astro.props as { tagSlug: string };
+const tag = siteData.tagsBySlug.get(tagSlug);
+
+if (!tag) {
+  throw new Error(`Unknown tag page: ${tagSlug}`);
+}
+---
+
+<BaseLayout title={`${tag.label} Tag`} description={`Notes tagged with ${tag.label}`} theme="writing" enableWritingEnhancers>
+  <section class="hero-panel hero-writing">
+    <div class="hero-copy">
+      <p class="eyebrow">Tag Archive</p>
+      <h1>#{tag.label}</h1>
+      <p class="hero-lead">{tag.notes.length} notes connect through this topic.</p>
+    </div>
+  </section>
+
+  <section class="content-panel">
+    <div class="note-grid">
+      {tag.notes.map((note) => (
+        <NoteCard note={note} showSection />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

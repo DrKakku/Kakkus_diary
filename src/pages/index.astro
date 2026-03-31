@@ -1,139 +1,126 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getCollection } from "astro:content";
-import {
-  buildHierarchy,
-  getEntryPath,
-  getEntryTitle,
-  getMetadataBadges,
-  withBase,
-} from "../lib/content";
+import NoteCard from "../components/NoteCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
 import { siteConfig } from "../config/site.config";
+import { withBase } from "../lib/content";
+import { getSiteData } from "../lib/site-data";
 
-const entries = (await getCollection("entries"))
-  .map((entry) => ({
-    ...entry,
-    safePath: getEntryPath(entry),
-    safeTitle: getEntryTitle(entry),
-  }))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
-
-const hierarchy = buildHierarchy(entries);
-const latestEntries = entries.slice(0, siteConfig.recentLimit);
-
-const uniqueTags = new Set(entries.flatMap((entry) => entry.data.tags ?? []));
+const siteData = await getSiteData();
+const featuredProjects = siteData.featuredProjects.slice(0, 3);
+const featuredWriting = (siteData.featuredWriting.length > 0 ? siteData.featuredWriting : siteData.notes).slice(0, siteConfig.featuredWritingLimit);
+const featuredSections = siteData.sections.slice(0, 3);
 ---
 
-<BaseLayout title="Home">
-  <section class="hero">
-    <div>
-      <p class="eyebrow">Obsidian vault → GitHub Pages</p>
-      <h1>Notes, experiments, and writing — preserved as hierarchy.</h1>
-      <p class="lead">My Adventures and Thoughts.</p>
+<BaseLayout title={siteConfig.siteName} description={siteConfig.siteDescription} theme="portfolio">
+  <section class="hero-panel hero-portfolio">
+    <div class="hero-copy">
+      <p class="eyebrow">{siteConfig.hero.eyebrow}</p>
+      <h1>{siteConfig.hero.headline}</h1>
+      <p class="hero-lead">{siteConfig.hero.lead}</p>
+
+      <div class="action-row">
+        <a class="button-link" href={withBase(siteConfig.hero.primaryCta.href)}>
+          {siteConfig.hero.primaryCta.label}
+        </a>
+        <a class="button-link button-link-secondary" href={withBase(siteConfig.hero.secondaryCta.href)}>
+          {siteConfig.hero.secondaryCta.label}
+        </a>
+      </div>
     </div>
 
-    <aside class="hero-card">
-      <div class="hero-stat">
-        <strong>{entries.length}</strong>
-        <span>published entries</span>
+    <aside class="hero-metrics">
+      <div class="metric-card">
+        <strong>{siteData.projects.length}</strong>
+        <span>active project stories</span>
       </div>
-      <div class="hero-stat">
-        <strong>{uniqueTags.size}</strong>
-        <span>unique tags</span>
+      <div class="metric-card">
+        <strong>{siteData.notes.length}</strong>
+        <span>published notes</span>
       </div>
-      <div class="hero-stat">
-        <strong>{hierarchy.length}</strong>
-        <span>folders + files</span>
+      <div class="metric-card">
+        <strong>{siteData.sections.length}</strong>
+        <span>dynamic writing sections</span>
+      </div>
+      <div class="metric-card">
+        <strong>{siteData.tags.length}</strong>
+        <span>tag connections</span>
       </div>
     </aside>
   </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Content map</h2>
-      <p>Proto of every idea and topic scattered here.</p>
+  <section class="content-panel">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Featured Work</p>
+        <h2>Projects that shape the rest of the system.</h2>
+      </div>
+      <a class="text-link" href={withBase("/projects")}>View all projects</a>
     </div>
 
-    {hierarchy.length > 0 ? (
-      <ul class="hierarchy">
-        {hierarchy.map((row) => {
-          const title = row.entry?.data.title ?? row.path.split("/").pop() ?? "Untitled";
-
-          return (
-            <li
-              class:list={[
-                "hierarchy-row",
-                row.kind,
-                `depth-${row.depth}`,
-              ]}
-              style={`--depth:${row.depth};`}
-            >
-              <span class="icon">{row.kind === "folder" ? "📁" : "•"}</span>
-
-              {row.kind === "file" && row.entry ? (
-                <>
-                  <a class="file-link" href={withBase("/" + row.path)}>
-                    {title}
-                  </a>
-
-                  <span class="entry-inline-meta">
-                    {getMetadataBadges(row.entry.data).map((badge) => (
-                      <span class="tag">{badge.label}</span>
-                    ))}
-                  </span>
-                </>
-              ) : (
-                <span class="folder-label">{row.label}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    ) : (
-      <div class="empty-state">
-        <p>No imported notes yet.</p>
-        <p>
-          Guess i dont have anything to talk about at the moment
-        </p>
-      </div>
-    )}
+    <div class="project-grid">
+      {featuredProjects.map((project) => (
+        <ProjectCard project={project} featured />
+      ))}
+    </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Whats Latest</h2>
-      <p>What did kakku think of now?</p>
-    </div>
+  <section class="content-panel bridge-grid">
+    <div>
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Writing Bridge</p>
+          <h2>The blog is a subsite, but it still feeds the portfolio.</h2>
+        </div>
+        <a class="text-link" href={withBase("/writing")}>Enter writing hub</a>
+      </div>
 
-    {latestEntries.length > 0 ? (
-      <div class="card-grid">
-        {latestEntries.map((entry) => (
-          <article class={`entry-card ${entry.data.status ?? ""}`}>
-            <p class="entry-meta">
-              <span>{entry.data.date.toISOString().slice(0, 10)}</span>
-            </p>
-
-            <h3>
-              <a href={withBase("/" + entry.safePath)}>{entry.safeTitle}</a>
-            </h3>
-
-
-            <div class="tag-row">
-              {getMetadataBadges(entry.data).map((badge) => (
-                <span class="tag">{badge.label}</span>
-              ))}
-
-              {(entry.data.tags ?? []).map((tag) => (
-                <span class="tag tag-muted">{tag}</span>
-              ))}
-            </div>
-          </article>
+      <div class="note-grid">
+        {featuredWriting.map((note) => (
+          <NoteCard note={note} showSection />
         ))}
       </div>
-    ) : (
-      <div class="empty-state">
-        <p>He does not like to talk a lot .</p>
+    </div>
+
+    <aside class="section-stack">
+      {featuredSections.map((section) => (
+        <a class="section-card" href={section.url}>
+          <span class="card-eyebrow">{section.notes.length} notes</span>
+          <strong>{section.label}</strong>
+          <p>{section.description}</p>
+        </a>
+      ))}
+    </aside>
+  </section>
+
+  <section class="content-panel split-panel">
+    <div>
+      <p class="eyebrow">About The Builder</p>
+      <h2>{siteConfig.profile.name} builds products where content and interface evolve together.</h2>
+      <p class="hero-lead">{siteConfig.profile.intro}</p>
+    </div>
+
+    <div class="copy-stack">
+      {siteConfig.profile.about.map((paragraph) => <p>{paragraph}</p>)}
+      <p class="muted-copy">{siteConfig.profile.location} • {siteConfig.profile.availability}</p>
+    </div>
+  </section>
+
+  <section class="content-panel contact-panel">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Connect</p>
+        <h2>Portfolio, resume, and public surfaces.</h2>
       </div>
-    )}
+    </div>
+
+    <div class="link-grid">
+      {siteConfig.socialLinks.map((link) => (
+        <a class="link-tile" href={link.kind === "internal" ? withBase(link.href) : link.href} target={link.kind === "external" ? "_blank" : undefined} rel={link.kind === "external" ? "noreferrer" : undefined}>
+          <strong>{link.label}</strong>
+          <span>{link.kind === "external" ? "External profile" : "Internal page"}</span>
+        </a>
+      ))}
+    </div>
   </section>
 </BaseLayout>

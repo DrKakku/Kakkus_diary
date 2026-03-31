@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { getSiteData } from "../../lib/site-data";
+
+const siteData = await getSiteData();
+---
+
+<BaseLayout title="Projects" description="Project case studies" theme="portfolio">
+  <section class="hero-panel hero-portfolio">
+    <div class="hero-copy">
+      <p class="eyebrow">Projects</p>
+      <h1>Case studies, experiments, and products that spill into the writing system.</h1>
+      <p class="hero-lead">
+        Selected work gets a full internal page here. Smaller things can still live as links, prototypes, or notes.
+      </p>
+    </div>
+  </section>
+
+  <section class="content-panel">
+    <div class="project-grid">
+      {siteData.projects.map((project) => (
+        <ProjectCard project={project} featured={project.entry.data.featured} />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

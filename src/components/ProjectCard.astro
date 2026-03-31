@@ -1,0 +1,49 @@
+---
+import { formatDateRange } from "../lib/content";
+import type { ProjectRecord } from "../lib/site-data";
+
+const {
+  project,
+  featured = false,
+} = Astro.props as {
+  project: ProjectRecord;
+  featured?: boolean;
+};
+
+const links = project.entry.data.links ?? {};
+---
+
+<article class:list={["project-card", featured && "featured", project.statusTone]}>
+  <div class="card-topline">
+    <span class="card-eyebrow">{project.entry.data.kind ?? "Project"}</span>
+    {project.entry.data.startDate && (
+      <span class="card-date">
+        {formatDateRange(project.entry.data.startDate, project.entry.data.endDate)}
+      </span>
+    )}
+  </div>
+
+  <h3><a href={project.url}>{project.entry.data.title}</a></h3>
+  <p>{project.summary}</p>
+
+  <div class="chip-row">
+    {project.entry.data.status && <span class:list={["chip", project.statusTone]}>{project.entry.data.status}</span>}
+    {project.entry.data.stack.slice(0, featured ? 6 : 4).map((item) => (
+      <span class="chip chip-muted">{item}</span>
+    ))}
+  </div>
+
+  <div class="action-row">
+    <a class="text-link" href={project.url}>Case study</a>
+    {links.live && (
+      <a class="text-link" href={links.live} target="_blank" rel="noreferrer">
+        Live link
+      </a>
+    )}
+    {links.repo && (
+      <a class="text-link" href={links.repo} target="_blank" rel="noreferrer">
+        Repository
+      </a>
+    )}
+  </div>
+</article>

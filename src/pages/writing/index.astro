@@ -1,0 +1,127 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import KnowledgeGraph from "../../components/KnowledgeGraph.astro";
+import NoteCard from "../../components/NoteCard.astro";
+import WritingSearch from "../../components/WritingSearch.astro";
+import { siteConfig } from "../../config/site.config";
+import { getSiteData } from "../../lib/site-data";
+
+const siteData = await getSiteData();
+const latestNotes = siteData.notes.slice(0, siteConfig.recentLimit);
+const featuredWriting = (siteData.featuredWriting.length > 0 ? siteData.featuredWriting : latestNotes).slice(0, 3);
+const popularTags = siteData.tags.slice(0, 10);
+const allFolders = siteData.folders;
+---
+
+<BaseLayout title="Writing" description="Writing hub and knowledge system" theme="writing" enableWritingEnhancers>
+  <section class="hero-panel hero-writing">
+    <div class="hero-copy">
+      <p class="eyebrow">Writing Hub</p>
+      <h1>Notes, ideas, and experiments organized like a living vault.</h1>
+      <p class="hero-lead">
+        Sections come from the imported folder structure, tags stay navigable, and linked notes keep the writing surface connected.
+      </p>
+    </div>
+
+    <aside class="hero-metrics">
+      <div class="metric-card">
+        <strong>{siteData.sections.length}</strong>
+        <span>sections</span>
+      </div>
+      <div class="metric-card">
+        <strong>{siteData.tags.length}</strong>
+        <span>tag pages</span>
+      </div>
+      <div class="metric-card">
+        <strong>{siteData.notes.length}</strong>
+        <span>notes</span>
+      </div>
+    </aside>
+  </section>
+
+  <WritingSearch items={siteData.searchIndex} />
+
+  <KnowledgeGraph
+    title="Vault Graph"
+    description="An Obsidian-inspired global map of the published vault. Notes and tags are interactive nodes."
+    graph={siteData.graph}
+    mode="global"
+    initialDepth={siteConfig.writing.globalGraphDepth}
+    showTags={siteConfig.writing.showTagsInGraph}
+  />
+
+  <section class="content-panel">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Section Map</p>
+        <h2>Folder-derived spaces with optional editorial framing.</h2>
+      </div>
+    </div>
+
+      <div class="section-grid">
+        {siteData.sections.map((section) => (
+          <a class="section-card" href={section.url}>
+            <span class="card-eyebrow">{section.notes.length} notes</span>
+            <strong>{section.label}</strong>
+          <p>{section.description}</p>
+        </a>
+      ))}
+      </div>
+    </section>
+
+  <section class="content-panel">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Folder Explorer</p>
+        <h2>Every folder currently exposed in the imported writing tree.</h2>
+      </div>
+    </div>
+
+    <div class="folder-explorer">
+      {allFolders.map((folder) => (
+        <a class="folder-explorer-row" href={folder.url} style={`--folder-depth:${folder.depth};`}>
+          <span class="folder-explorer-path">{folder.path}</span>
+          <strong>{folder.label}</strong>
+          <span>{folder.descendantNotes.length} notes</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="content-panel">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Featured Writing</p>
+        <h2>Notes worth entering from the portfolio layer.</h2>
+      </div>
+    </div>
+
+    <div class="note-grid">
+      {featuredWriting.map((note) => (
+        <NoteCard note={note} showSection />
+      ))}
+    </div>
+  </section>
+
+  <section class="content-panel split-panel">
+    <div>
+      <p class="eyebrow">Latest Notes</p>
+      <h2>The freshest writing from the vault.</h2>
+      <div class="note-list">
+        {latestNotes.map((note) => (
+          <NoteCard note={note} showSection compact />
+        ))}
+      </div>
+    </div>
+
+    <aside class="tag-cloud">
+      <p class="eyebrow">Tags</p>
+      <h2>Topics that cut across folders.</h2>
+      <div class="chip-row">
+        {popularTags.map((tag) => (
+          <a class="chip chip-muted" href={tag.url}>{tag.label} • {tag.notes.length}</a>
+        ))}
+      </div>
+    </aside>
+  </section>
+</BaseLayout>

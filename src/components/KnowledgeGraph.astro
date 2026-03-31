@@ -1,0 +1,338 @@
+---
+import { slugify } from "../lib/content";
+import type { SiteData } from "../lib/site-data";
+
+const {
+  title = "Knowledge Graph",
+  description = "Explore links between notes and tags.",
+  graph,
+  mode = "global",
+  focusPath,
+  initialDepth = 2,
+  showTags = true,
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  graph: SiteData["graph"];
+  mode?: "global" | "local";
+  focusPath?: string;
+  initialDepth?: number;
+  showTags?: boolean;
+};
+
+const graphId = `graph-${slugify(`${mode}-${focusPath ?? title}`)}`;
+---
+
+<section
+  class="graph-shell"
+  data-graph-id={graphId}
+  data-mode={mode}
+  data-focus-path={focusPath ?? ""}
+  data-initial-depth={String(initialDepth)}
+  data-show-tags={showTags ? "true" : "false"}
+>
+  <div class="graph-head">
+    <div>
+      <p class="eyebrow">{mode === "global" ? "Global Graph" : "Local Graph"}</p>
+      <h2>{title}</h2>
+      <p class="search-help">{description}</p>
+    </div>
+
+    <div class="graph-controls">
+      <label class="graph-control graph-control-search">
+        <span>Search</span>
+        <input type="search" placeholder="Filter nodes..." />
+      </label>
+
+      {mode === "local" && (
+        <label class="graph-control">
+          <span>Depth</span>
+          <input type="range" min="1" max="4" step="1" value={String(initialDepth)} data-role="depth" />
+        </label>
+      )}
+
+      <label class="graph-control graph-toggle">
+        <input type="checkbox" checked={showTags} data-role="show-tags" />
+        <span>Show tags</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="graph-stage" data-role="graph-stage">
+    <div class="graph-canvas" data-role="graph"></div>
+    <div class="graph-info" data-role="graph-info">
+      <strong>Hover a node</strong>
+      <p>Click a note or tag node to open it. Drag to reposition and scroll to zoom.</p>
+    </div>
+  </div>
+
+  <script type="application/json" class="graph-data" set:html={JSON.stringify(graph)} />
+  <script is:inline type="module">
+    (() => {
+      const host = document.currentScript?.parentElement;
+      if (!host) return;
+
+      const dataNode = host.querySelector('.graph-data');
+      const graphRoot = host.querySelector('[data-role="graph"]');
+      const infoNode = host.querySelector('[data-role="graph-info"]');
+      const searchInput = host.querySelector('input[type="search"]');
+      const depthInput = host.querySelector('[data-role="depth"]');
+      const tagsInput = host.querySelector('[data-role="show-tags"]');
+
+      if (!dataNode || !graphRoot || !infoNode || !searchInput || !tagsInput) return;
+
+      const rawGraph = JSON.parse(dataNode.textContent || '{"nodes":[],"links":[]}');
+      const mode = host.dataset.mode || 'global';
+      const focusPath = host.dataset.focusPath || '';
+
+      const buildLocalGraph = (graph, depth, includeTags) => {
+        const focusId = `note:${focusPath}`;
+        const adjacency = new Map();
+
+        const connect = (a, b) => {
+          const list = adjacency.get(a) || new Set();
+          list.add(b);
+          adjacency.set(a, list);
+        };
+
+        graph.links.forEach((link) => {
+          if (link.kind === 'note-link') {
+            connect(link.source, link.target);
+            connect(link.target, link.source);
+          }
+        });
+
+        const included = new Set([focusId]);
+        let frontier = new Set([focusId]);
+
+        for (let currentDepth = 0; currentDepth < depth; currentDepth += 1) {
+          const next = new Set();
+
+          frontier.forEach((nodeId) => {
+            (adjacency.get(nodeId) || []).forEach((neighbor) => {
+              if (!included.has(neighbor)) {
+                included.add(neighbor);
+                next.add(neighbor);
+              }
+            });
+          });
+
+          frontier = next;
+        }
+
+        const localNodes = graph.nodes.filter((node) => included.has(node.id));
+        const nodeIds = new Set(localNodes.map((node) => node.id));
+
+        const localLinks = graph.links.filter((link) => {
+          if (link.kind !== 'note-link') return false;
+          return nodeIds.has(link.source) && nodeIds.has(link.target);
+        });
+
+        if (includeTags) {
+          const tagLinks = graph.links.filter((link) => link.kind === 'tag-link' && nodeIds.has(link.source));
+          const tagIds = new Set(tagLinks.map((link) => link.target));
+          const tagNodes = graph.nodes.filter((node) => tagIds.has(node.id));
+          return {
+            nodes: [...localNodes, ...tagNodes],
+            links: [...localLinks, ...tagLinks],
+          };
+        }
+
+        return { nodes: localNodes, links: localLinks };
+      };
+
+      const buildFilteredGraph = () => {
+        const includeTags = tagsInput.checked;
+        const query = searchInput.value.trim().toLowerCase();
+        const depth = Number(depthInput?.value || host.dataset.initialDepth || '2');
+
+        const baseGraph =
+          mode === 'local' && focusPath
+            ? buildLocalGraph(rawGraph, depth, includeTags)
+            : {
+                nodes: rawGraph.nodes.filter((node) => includeTags || node.kind !== 'tag'),
+                links: rawGraph.links.filter((link) => includeTags || link.kind !== 'tag-link'),
+              };
+
+        if (!query) return baseGraph;
+
+        const matchingNodes = new Set(
+          baseGraph.nodes
+            .filter((node) =>
+              [node.label, node.path || '', node.section || '', (node.tags || []).join(' ')]
+                .join(' ')
+                .toLowerCase()
+                .includes(query),
+            )
+            .map((node) => node.id),
+        );
+
+        const expandedIds = new Set(matchingNodes);
+
+        baseGraph.links.forEach((link) => {
+          if (matchingNodes.has(link.source) || matchingNodes.has(link.target)) {
+            expandedIds.add(link.source);
+            expandedIds.add(link.target);
+          }
+        });
+
+        return {
+          nodes: baseGraph.nodes.filter((node) => expandedIds.has(node.id)),
+          links: baseGraph.links.filter(
+            (link) => expandedIds.has(link.source) && expandedIds.has(link.target),
+          ),
+        };
+      };
+
+      const render = async () => {
+        const graph = buildFilteredGraph();
+        graphRoot.innerHTML = '';
+
+        if (!graph.nodes.length) {
+          graphRoot.innerHTML = '<div class="empty-state"><p>No nodes match the current graph filter.</p></div>';
+          return;
+        }
+
+        const d3 = await import('https://cdn.jsdelivr.net/npm/d3@7/+esm');
+        const width = graphRoot.clientWidth || 720;
+        const height = Math.max(440, Math.min(620, Math.round(width * 0.58)));
+
+        const svg = d3
+          .select(graphRoot)
+          .append('svg')
+          .attr('viewBox', `0 0 ${width} ${height}`)
+          .attr('class', 'knowledge-graph');
+
+        const canvas = svg.append('g');
+
+        svg.call(
+          d3
+            .zoom()
+            .scaleExtent([0.45, 4])
+            .on('zoom', (event) => canvas.attr('transform', event.transform)),
+        );
+
+        const neighbors = new Map();
+        graph.links.forEach((link) => {
+          const sourceList = neighbors.get(link.source) || new Set();
+          sourceList.add(link.target);
+          neighbors.set(link.source, sourceList);
+
+          const targetList = neighbors.get(link.target) || new Set();
+          targetList.add(link.source);
+          neighbors.set(link.target, targetList);
+        });
+
+        const simulation = d3
+          .forceSimulation(graph.nodes.map((node) => ({ ...node })))
+          .force(
+            'link',
+            d3
+              .forceLink(graph.links.map((link) => ({ ...link })))
+              .id((d) => d.id)
+              .distance((link) => (link.kind === 'tag-link' ? 54 : 88))
+              .strength((link) => (link.kind === 'tag-link' ? 0.34 : 0.22)),
+          )
+          .force('charge', d3.forceManyBody().strength((node) => (node.kind === 'tag' ? -120 : -180)))
+          .force('center', d3.forceCenter(width / 2, height / 2))
+          .force('collision', d3.forceCollide().radius((node) => node.radius + 8));
+
+        const link = canvas
+          .append('g')
+          .attr('class', 'graph-links')
+          .selectAll('line')
+          .data(simulation.force('link').links())
+          .join('line')
+          .attr('class', (d) => `graph-link ${d.kind}`);
+
+        const label = canvas
+          .append('g')
+          .attr('class', 'graph-labels')
+          .selectAll('text')
+          .data(simulation.nodes())
+          .join('text')
+          .attr('class', (d) => `graph-label ${d.kind}`)
+          .text((d) => d.label);
+
+        const node = canvas
+          .append('g')
+          .attr('class', 'graph-nodes')
+          .selectAll('circle')
+          .data(simulation.nodes())
+          .join('circle')
+          .attr('r', (d) => d.radius)
+          .attr('class', (d) => `graph-node ${d.kind}${d.path === focusPath ? ' current' : ''}`)
+          .on('mouseenter', (_, current) => {
+            const connected = neighbors.get(current.id) || new Set();
+
+            node.classed('dimmed', (candidate) => candidate.id !== current.id && !connected.has(candidate.id));
+            label.classed('dimmed', (candidate) => candidate.id !== current.id && !connected.has(candidate.id));
+            link.classed(
+              'dimmed',
+              (candidate) => candidate.source.id !== current.id && candidate.target.id !== current.id,
+            );
+
+            infoNode.innerHTML = `
+              <strong>${current.label}</strong>
+              <p>${current.kind === 'tag' ? 'Tag node' : 'Note node'}${current.section ? ` • ${current.section}` : ''}</p>
+              <p>${connected.size} visible connection${connected.size === 1 ? '' : 's'}</p>
+            `;
+          })
+          .on('mouseleave', () => {
+            node.classed('dimmed', false);
+            label.classed('dimmed', false);
+            link.classed('dimmed', false);
+            infoNode.innerHTML = '<strong>Hover a node</strong><p>Click a note or tag node to open it. Drag to reposition and scroll to zoom.</p>';
+          })
+          .on('click', (_, current) => {
+            if (current.url) {
+              window.location.href = current.url;
+            }
+          })
+          .call(
+            d3
+              .drag()
+              .on('start', (event, current) => {
+                if (!event.active) simulation.alphaTarget(0.2).restart();
+                current.fx = current.x;
+                current.fy = current.y;
+              })
+              .on('drag', (event, current) => {
+                current.fx = event.x;
+                current.fy = event.y;
+              })
+              .on('end', (event, current) => {
+                if (!event.active) simulation.alphaTarget(0);
+                current.fx = null;
+                current.fy = null;
+              }),
+          );
+
+        simulation.on('tick', () => {
+          link
+            .attr('x1', (d) => d.source.x)
+            .attr('y1', (d) => d.source.y)
+            .attr('x2', (d) => d.target.x)
+            .attr('y2', (d) => d.target.y);
+
+          node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
+
+          label.attr('x', (d) => d.x + d.radius + 6).attr('y', (d) => d.y + 4);
+        });
+      };
+
+      const rerender = () => {
+        render().catch((error) => {
+          console.warn('Graph render failed', error);
+          graphRoot.innerHTML = '<div class="empty-state"><p>Graph rendering failed in this browser session.</p></div>';
+        });
+      };
+
+      searchInput.addEventListener('input', rerender);
+      tagsInput.addEventListener('change', rerender);
+      depthInput?.addEventListener('input', rerender);
+      window.addEventListener('resize', rerender, { passive: true });
+      rerender();
+    })();
+  </script>
+</section>

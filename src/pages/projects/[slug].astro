@@ -1,0 +1,77 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDateRange } from "../../lib/content";
+
+const projects = await getCollection("projects");
+
+export async function getStaticPaths() {
+  const projects = await getCollection("projects");
+
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props as {
+  project: (typeof projects)[number];
+};
+
+const { Content } = await render(project);
+const links = project.data.links ?? {};
+---
+
+<BaseLayout title={project.data.title} description={project.data.description ?? project.data.summary} theme="portfolio">
+  <section class="hero-panel hero-portfolio">
+    <div class="hero-copy">
+      <p class="eyebrow">{project.data.kind ?? "Project"}</p>
+      <h1>{project.data.title}</h1>
+      <p class="hero-lead">{project.data.summary}</p>
+
+      <div class="action-row">
+        {links.live && (
+          <a class="button-link" href={links.live} target="_blank" rel="noreferrer">Open live link</a>
+        )}
+        {links.repo && (
+          <a class="button-link button-link-secondary" href={links.repo} target="_blank" rel="noreferrer">
+            View repository
+          </a>
+        )}
+      </div>
+    </div>
+
+    <aside class="hero-metrics">
+      {project.data.role && (
+        <div class="metric-card">
+          <strong>{project.data.role}</strong>
+          <span>role</span>
+        </div>
+      )}
+      {project.data.status && (
+        <div class="metric-card">
+          <strong>{project.data.status}</strong>
+          <span>status</span>
+        </div>
+      )}
+      {project.data.startDate && (
+        <div class="metric-card">
+          <strong>{formatDateRange(project.data.startDate, project.data.endDate)}</strong>
+          <span>timeline</span>
+        </div>
+      )}
+    </aside>
+  </section>
+
+  <section class="content-panel article-shell">
+    <div class="chip-row">
+      {project.data.stack.map((item) => (
+        <span class="chip chip-muted">{item}</span>
+      ))}
+    </div>
+
+    <div class="prose prose-project">
+      <Content />
+    </div>
+  </section>
+</BaseLayout>

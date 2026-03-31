@@ -6,7 +6,33 @@ import { withBase } from "../lib/content";
 const {
   title = siteConfig.siteName,
   description = siteConfig.siteDescription,
-} = Astro.props;
+  theme = "portfolio",
+  enableWritingEnhancers = false,
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  theme?: "portfolio" | "writing";
+  enableWritingEnhancers?: boolean;
+};
+
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+
+function navHref(href: string, kind: "internal" | "external" = "internal") {
+  return kind === "internal" ? withBase(href) : href;
+}
+
+function isActive(href: string) {
+  if (href === "/") {
+    return currentPath === (withBase("/").replace(/\/$/, "") || "/");
+  }
+
+  if (href === "/writing" && theme === "writing") {
+    return true;
+  }
+
+  const target = withBase(href).replace(/\/$/, "") || "/";
+  return currentPath === target || currentPath.startsWith(`${target}/`);
+}
 ---
 
 <!doctype html>
@@ -16,17 +42,161 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body>
-    <div class="shell">
-      <header class="topbar">
-        <a class="brand" href={withBase("/")}>{siteConfig.siteName}</a>
-        <p class="subtitle">{siteConfig.siteDescription}</p>
+  <body class:list={["site-body", `theme-${theme}`]}>
+    <div class="site-noise"></div>
+    <div class="site-frame">
+      <header class="site-header">
+        <a class="brand-lockup" href={withBase("/")}>
+          <span class="brand-mark">YT</span>
+          <span>
+            <strong>{siteConfig.siteName}</strong>
+            <small>{siteConfig.profile.title}</small>
+          </span>
+        </a>
+
+        <nav class="primary-nav" aria-label="Primary">
+          {siteConfig.navigation.map((item) => (
+            <a class:list={["nav-link", isActive(item.href) && "active"]} href={withBase(item.href)}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
-      <main class="main">
+      <main class="page-shell">
         <slot />
       </main>
+
+      <footer class="site-footer">
+        <div class="footer-hero">
+          <p class="eyebrow">Built From Notes</p>
+          <h2>{siteConfig.profile.name}</h2>
+          <p class="footer-copy">{siteConfig.footer.manifesto}</p>
+          <p class="footer-caption">{siteConfig.footer.caption}</p>
+        </div>
+
+        <div class="footer-column">
+          <p class="footer-label">Navigate</p>
+          <div class="footer-links">
+            {siteConfig.quickLinks.map((link) => (
+              <a href={navHref(link.href, link.kind as "internal" | "external")}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="footer-column">
+          <p class="footer-label">Connect</p>
+          <div class="footer-links">
+            {siteConfig.socialLinks.map((link) => (
+              <a href={navHref(link.href, link.kind as "internal" | "external")} target={link.kind === "external" ? "_blank" : undefined} rel={link.kind === "external" ? "noreferrer" : undefined}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
     </div>
+
+    {enableWritingEnhancers && (
+      <script is:inline type="module">
+        const initMermaid = async () => {
+          const graphs = document.querySelectorAll('.mermaid-graph');
+          if (!graphs.length) return;
+
+          try {
+            const mermaidModule = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+            const mermaid = mermaidModule.default;
+            mermaid.initialize({
+              startOnLoad: false,
+              securityLevel: 'loose',
+              theme: 'base',
+              themeVariables: {
+                primaryColor: '#0f172a',
+                primaryTextColor: '#e2e8f0',
+                lineColor: '#8b5cf6',
+                fontFamily: 'Space Grotesk',
+                primaryBorderColor: '#475569',
+              },
+            });
+            await mermaid.run({ querySelector: '.mermaid-graph' });
+          } catch (error) {
+            console.warn('Mermaid enhancement failed', error);
+          }
+        };
+
+        const rollExpression = (expression) => {
+          const cleaned = expression.replace(/\s+/g, '');
+          const parts = cleaned.match(/[+-]?[^+-]+/g) ?? [];
+
+          let total = 0;
+          const breakdown = [];
+
+          for (const rawPart of parts) {
+            const part = rawPart.trim();
+            if (!part) continue;
+
+            const sign = part.startsWith('-') ? -1 : 1;
+            const token = part.replace(/^[+-]/, '');
+
+            if (/^\d*d\d+$/i.test(token)) {
+              const [countValue, sizeValue] = token.toLowerCase().split('d');
+              const count = Number(countValue || 1);
+              const size = Number(sizeValue);
+              let subtotal = 0;
+              const rolls = [];
+
+              for (let index = 0; index < count; index += 1) {
+                const roll = Math.floor(Math.random() * size) + 1;
+                subtotal += roll;
+                rolls.push(roll);
+              }
+
+              total += subtotal * sign;
+              breakdown.push(`${sign < 0 ? '-' : ''}${count}d${size} [${rolls.join(', ')}]`);
+              continue;
+            }
+
+            if (/^\d+$/.test(token)) {
+              total += Number(token) * sign;
+              breakdown.push(`${sign < 0 ? '-' : '+'}${token}`);
+            }
+          }
+
+          return {
+            total,
+            breakdown: breakdown.join(' '),
+          };
+        };
+
+        const initDice = () => {
+          document.querySelectorAll('[data-dice-expression]').forEach((card) => {
+            const button = card.querySelector('.dice-roll-trigger');
+            const result = card.querySelector('.dice-roll-result');
+            if (!button || !result) return;
+
+            const reroll = () => {
+              const expression = card.getAttribute('data-dice-expression') || '';
+              const roll = rollExpression(expression);
+              result.textContent = `${roll.total} • ${roll.breakdown}`;
+            };
+
+            button.addEventListener('click', reroll);
+            reroll();
+          });
+        };
+
+        initMermaid();
+        initDice();
+      </script>
+    )}
   </body>
 </html>
