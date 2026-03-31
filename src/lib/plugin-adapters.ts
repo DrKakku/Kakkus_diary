@@ -1,11 +1,16 @@
+import { renderDataviewBlock, renderDataviewJsBlock } from "./dataview";
+import type { NoteRecord, SiteData } from "./site-data";
+
 type PluginAdapterContext = {
   code: string;
+  note: NoteRecord;
+  siteData: SiteData;
 };
 
 export type PluginAdapter = {
   name: string;
   matches: (language?: string | null) => boolean;
-  render: (context: PluginAdapterContext) => string;
+  render: (context: PluginAdapterContext) => Promise<string> | string;
 };
 
 function escapeHtml(value: string) {
@@ -18,6 +23,22 @@ function escapeHtml(value: string) {
 
 export const pluginAdapters: PluginAdapter[] = [
   {
+    name: "dataview",
+    matches: (language) => language?.toLowerCase() === "dataview",
+    async render(context) {
+      const result = await renderDataviewBlock(context.code, context);
+      return result.html;
+    },
+  },
+  {
+    name: "dataviewjs",
+    matches: (language) => language?.toLowerCase() === "dataviewjs",
+    async render(context) {
+      const result = await renderDataviewJsBlock(context.code, context);
+      return result.html;
+    },
+  },
+  {
     name: "mermaid",
     matches: (language) => language?.toLowerCase() === "mermaid",
     render: ({ code }) =>
@@ -27,7 +48,8 @@ export const pluginAdapters: PluginAdapter[] = [
   },
   {
     name: "diceroll",
-    matches: (language) => ["dice", "diceroll", "dice-roller"].includes(language?.toLowerCase() ?? ""),
+    matches: (language) =>
+      ["dice", "diceroll", "dice-roller"].includes(language?.toLowerCase() ?? ""),
     render: ({ code }) =>
       `<div class="plugin-card dice-card" data-dice-expression="${escapeHtml(
         code.trim(),

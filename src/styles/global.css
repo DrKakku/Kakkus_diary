@@ -697,6 +697,39 @@ pre {
   color: #ffe2a5;
 }
 
+.table-shell {
+  overflow-x: auto;
+}
+
+.dataview-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dataview-card th,
+.dataview-card td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.dataview-card th {
+  color: #a5d8ff;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.plugin-warning {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.16);
+}
+
+.plugin-warning strong {
+  color: #fecaca;
+}
+
 .article-aside-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.95fr);
@@ -832,6 +865,16 @@ pre {
   font-size: 0.86rem;
 }
 
+.graph-control input:not([type="checkbox"]),
+.graph-control select {
+  min-width: 160px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(7, 12, 24, 0.84);
+  color: var(--text);
+}
+
 .graph-control-search {
   min-width: 220px;
 }
@@ -840,6 +883,21 @@ pre {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.graph-action {
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: rgba(56, 189, 248, 0.12);
+  color: #e0f2fe;
+  cursor: pointer;
+}
+
+.graph-action.ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #d7e8ff;
 }
 
 .graph-stage {
@@ -856,6 +914,11 @@ pre {
     radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 55%),
     rgba(8, 12, 22, 0.8);
   overflow: hidden;
+}
+
+.graph-canvas > div {
+  width: 100%;
+  height: 100%;
 }
 
 .graph-info {

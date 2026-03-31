@@ -3,8 +3,9 @@ import { glob } from "astro/loaders";
 
 const entrySchema = z
   .object({
-    title: z.string(),
-    date: z.coerce.date(),
+    title: z.string().optional(),
+    date: z.coerce.date().optional(),
+    practice_date: z.coerce.date().optional(),
     description: z.string().optional(),
     summary: z.string().optional(),
     tags: z.array(z.string()).default([]),

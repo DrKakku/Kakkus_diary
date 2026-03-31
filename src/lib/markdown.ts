@@ -7,29 +7,16 @@ import rehypeStringify from "rehype-stringify";
 import GithubSlugger from "github-slugger";
 import { visit } from "unist-util-visit";
 import { pluginAdapters } from "./plugin-adapters";
-import type { NoteRecord } from "./site-data";
+import type { NoteRecord, SiteData } from "./site-data";
 
-type SiteDataLike = {
-  resolveWikiLink: (rawTarget: string, currentNote: NoteRecord, embed?: boolean) => {
-    label: string;
-    href: string;
-    type: string;
-    embed: boolean;
-    path?: string;
-  };
-  resolveAssetPath: (rawTarget: string, currentNote: NoteRecord) => {
-    url: string;
-    basename: string;
-  } | undefined;
-};
+type SiteDataLike = Pick<SiteData, "resolveWikiLink" | "resolveAssetPath" | "notes">;
 
-export async function renderNoteHtml(note: NoteRecord, siteData: SiteDataLike) {
-  const preparedBody = prepareNoteBody(note);
+export async function renderNoteHtml(note: NoteRecord, siteData: SiteData) {
+  const preparedBody = await prepareNoteBody(note, siteData);
 
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
-    .use(remarkObsidianPlugins, { note, siteData })
     .use(remarkWikiLinks, { note, siteData })
     .use(remarkLocalAssets, { note, siteData })
     .use(remarkRehype, { allowDangerousHtml: true })
@@ -41,12 +28,13 @@ export async function renderNoteHtml(note: NoteRecord, siteData: SiteDataLike) {
   return String(file);
 }
 
-function prepareNoteBody(note: NoteRecord) {
+async function prepareNoteBody(note: NoteRecord, siteData: SiteData) {
   let body = note.entry.body ?? "";
 
   body = stripLeadingTitle(body, note.title);
   body = stripInlineTagFooter(body);
   body = injectBlockAnchors(body);
+  body = await applyCodeFenceAdapters(body, note, siteData);
 
   return body;
 }
@@ -96,22 +84,6 @@ function injectBlockAnchors(body: string) {
     .join("\n");
 }
 
-function remarkObsidianPlugins(options: { note: NoteRecord; siteData: SiteDataLike }) {
-  return (tree: any) => {
-    visit(tree, "code", (node: any, index: number | undefined, parent: any) => {
-      if (typeof index !== "number" || !parent?.children) return;
-
-      const adapter = pluginAdapters.find((candidate) => candidate.matches(node.lang));
-      if (!adapter) return;
-
-      parent.children.splice(index, 1, {
-        type: "html",
-        value: adapter.render({ code: node.value ?? "" }),
-      });
-    });
-  };
-}
-
 function remarkLocalAssets(options: { note: NoteRecord; siteData: SiteDataLike }) {
   return (tree: any) => {
     visit(tree, (node: any) => {
@@ -123,6 +95,50 @@ function remarkLocalAssets(options: { note: NoteRecord; siteData: SiteDataLike }
       }
     });
   };
+}
+
+async function applyCodeFenceAdapters(body: string, note: NoteRecord, siteData: SiteData) {
+  const lines = body.split("\n");
+  const output: string[] = [];
+  let fenceLanguage: string | undefined;
+  let fenceBuffer: string[] = [];
+
+  for (const line of lines) {
+    const fenceStart = /^```([A-Za-z0-9_-]+)?\s*$/.exec(line.trim());
+
+    if (!fenceLanguage && fenceStart) {
+      fenceLanguage = fenceStart[1]?.trim();
+      fenceBuffer = [];
+      continue;
+    }
+
+    if (fenceLanguage && /^```\s*$/.test(line.trim())) {
+      const adapter = pluginAdapters.find((candidate) => candidate.matches(fenceLanguage));
+
+      if (adapter) {
+        output.push(await adapter.render({ code: fenceBuffer.join("\n"), note, siteData }));
+      } else {
+        output.push(`\`\`\`${fenceLanguage}\n${fenceBuffer.join("\n")}\n\`\`\``);
+      }
+
+      fenceLanguage = undefined;
+      fenceBuffer = [];
+      continue;
+    }
+
+    if (fenceLanguage) {
+      fenceBuffer.push(line);
+      continue;
+    }
+
+    output.push(line);
+  }
+
+  if (fenceLanguage) {
+    output.push(`\`\`\`${fenceLanguage}\n${fenceBuffer.join("\n")}`);
+  }
+
+  return output.join("\n");
 }
 
 function remarkWikiLinks(options: { note: NoteRecord; siteData: SiteDataLike }) {

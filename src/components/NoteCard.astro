@@ -18,7 +18,7 @@ const badges = getMetadataBadges(note.entry.data);
 <article class:list={["note-card", compact && "compact", getStatusTone(note.entry.data.status)]}>
   <div class="card-topline">
     {showSection && <span class="card-eyebrow">{note.sectionLabel}</span>}
-    <span class="card-date">{formatDate(note.entry.data.date)}</span>
+    <span class="card-date">{formatDate(note.canonicalDate)}</span>
   </div>
 
   <h3><a href={note.url}>{note.title}</a></h3>

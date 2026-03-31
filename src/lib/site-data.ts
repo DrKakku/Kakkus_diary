@@ -18,6 +18,13 @@ import {
   slugify,
   withBase,
 } from "./content";
+import {
+  getCanonicalDate,
+  getVaultPathFromFilePath,
+  mergeObsidianFields,
+  normalizeVaultPath,
+  parseInlineFields,
+} from "./obsidian";
 import type { Entry, ProjectEntry } from "./content";
 
 export type HeadingInfo = {
@@ -44,13 +51,19 @@ export type ResolvedLink = {
 export type NoteRecord = {
   entry: Entry;
   path: string;
+  vaultPath: string;
+  vaultFolder: string;
   url: string;
   title: string;
+  canonicalTitle: string;
+  canonicalDate?: Date;
   summary: string;
   sectionKey: string;
   sectionLabel: string;
   tags: string[];
   aliases: string[];
+  inlineFields: Record<string, unknown>;
+  fields: Record<string, unknown>;
   headings: HeadingInfo[];
   blocks: BlockInfo[];
   links: ResolvedLink[];
@@ -73,8 +86,10 @@ export type GraphNode = {
   url: string;
   path?: string;
   section?: string;
+  sectionLabel?: string;
   tags?: string[];
   radius: number;
+  degree: number;
 };
 
 export type GraphLink = {
@@ -141,11 +156,14 @@ export type SiteData = {
   searchIndex: {
     notes: Array<{
       title: string;
+      normalizedTitle: string;
       summary: string;
       url: string;
       tags: string[];
       aliases: string[];
       section: string;
+      path: string;
+      excerpt: string;
     }>;
     tags: Array<{
       label: string;
@@ -187,6 +205,9 @@ async function buildSiteData(): Promise<SiteData> {
   const notes: NoteRecord[] = entryCollection
     .map((entry) => {
       const entryPath = getEntryPath(entry);
+      const vaultPath = entry.filePath
+        ? getVaultPathFromFilePath(path.resolve(entry.filePath), importedRoot)
+        : normalizeVaultPath(`${entryPath}.md`);
       const sectionKey = entryPath.split("/")[0] ?? "writing";
       const sectionOverride =
         siteConfig.sectionOverrides[sectionKey as keyof typeof siteConfig.sectionOverrides];
@@ -196,28 +217,40 @@ async function buildSiteData(): Promise<SiteData> {
       const blocks = extractBlocks(entry.body ?? "");
       const tags = getUniqueTags(entry.data.tags, getInlineTags(entry.body ?? ""));
       const aliases = getUniqueTags(entry.data.aliases);
+      const inlineFields = parseInlineFields(entry.body ?? "");
+      const fields = mergeObsidianFields(entry.data, inlineFields);
+      const canonicalTitle = getEntryTitle(entry);
+      const canonicalDate = getCanonicalDate(fields);
+      const excerpt = extractExcerpt(entry.body ?? "", 400);
 
       const note: NoteRecord = {
         entry,
         path: entryPath,
+        vaultPath,
+        vaultFolder: vaultPath.split("/").slice(0, -1).join("/"),
         url: getEntryUrl(entry),
-        title: getEntryTitle(entry),
+        title: canonicalTitle,
+        canonicalTitle,
+        canonicalDate,
         summary: getEntrySummary(entry),
         sectionKey,
         sectionLabel: sectionLabel ?? humanizeSlug(sectionKey),
         tags,
         aliases,
+        inlineFields,
+        fields,
         headings,
         blocks,
         links: [],
         backlinks: [],
         related: [],
         searchText: [
-          getEntryTitle(entry),
+          canonicalTitle,
           getEntrySummary(entry),
+          vaultPath,
           tags.join(" "),
           aliases.join(" "),
-          extractExcerpt(entry.body ?? "", 400),
+          excerpt,
         ]
           .filter(Boolean)
           .join(" "),
@@ -226,7 +259,7 @@ async function buildSiteData(): Promise<SiteData> {
       registerNoteLookup(noteLookup, note);
       return note;
     })
-    .sort((a, b) => b.entry.data.date.getTime() - a.entry.data.date.getTime());
+    .sort(compareNotesByDate);
 
   const notesByPath = new Map(notes.map((note) => [note.path, note]));
 
@@ -264,7 +297,7 @@ async function buildSiteData(): Promise<SiteData> {
 
   for (const note of notes) {
     note.backlinks = dedupeNotes(backlinks.get(note.path) ?? []).sort(
-      (a, b) => b.entry.data.date.getTime() - a.entry.data.date.getTime(),
+      compareNotesByDate,
     );
     note.related = computeRelatedNotes(note, notes);
   }
@@ -302,11 +335,14 @@ async function buildSiteData(): Promise<SiteData> {
     searchIndex: {
       notes: notes.map((note) => ({
         title: note.title,
+        normalizedTitle: normalizeLookup(note.title),
         summary: note.summary,
         url: note.url,
         tags: note.tags,
         aliases: note.aliases,
         section: note.sectionLabel,
+        path: note.vaultPath,
+        excerpt: extractExcerpt(note.entry.body ?? "", 220),
       })),
       tags: tags.map((tag) => ({
         label: tag.label,
@@ -453,6 +489,7 @@ function registerNoteLookup(map: Map<string, NoteRecord[]>, note: NoteRecord) {
   const keys = new Set<string>([
     normalizeLookup(note.title),
     normalizeLookup(note.path),
+    normalizeLookup(note.vaultPath),
     normalizeLookup(note.path.split("/").pop() ?? note.title),
   ]);
 
@@ -644,6 +681,17 @@ function computeRelatedNotes(note: NoteRecord, notes: NoteRecord[]) {
   return dedupeNotes(scores);
 }
 
+function compareNotesByDate(left: NoteRecord, right: NoteRecord) {
+  const leftTime = left.canonicalDate?.getTime() ?? 0;
+  const rightTime = right.canonicalDate?.getTime() ?? 0;
+
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  return left.title.localeCompare(right.title);
+}
+
 function dedupeNotes(notes: NoteRecord[]) {
   const seen = new Set<string>();
   return notes.filter((note) => {
@@ -668,8 +716,10 @@ function buildGraph(notes: NoteRecord[], tags: TagRecord[]) {
       url: note.url,
       path: note.path,
       section: note.sectionKey,
+      sectionLabel: note.sectionLabel,
       tags: note.tags,
       radius: Math.max(7, Math.min(16, 7 + degree)),
+      degree,
     });
 
     for (const link of note.links) {
@@ -693,6 +743,7 @@ function buildGraph(notes: NoteRecord[], tags: TagRecord[]) {
       kind: "tag",
       url: tag.url,
       radius: Math.max(6, Math.min(14, 5 + tag.notes.length)),
+      degree: tag.notes.length,
     });
 
     for (const note of tag.notes) {

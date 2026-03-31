@@ -3,11 +3,14 @@ const { items } = Astro.props as {
   items: {
     notes: Array<{
       title: string;
+      normalizedTitle: string;
       summary: string;
       url: string;
       tags: string[];
       aliases: string[];
       section: string;
+      path: string;
+      excerpt: string;
     }>;
     tags: Array<{
       label: string;
@@ -67,8 +70,8 @@ const { items } = Astro.props as {
             (item) => `
               <a class="palette-result" href="${item.url}">
                 <strong>${item.title}</strong>
-                <span>${item.section}</span>
-                <p>${item.summary}</p>
+                <span>${item.section} • ${item.path}</span>
+                <p>${item.summary || item.excerpt}</p>
               </a>`,
           )
           .join('');
@@ -90,7 +93,16 @@ const { items } = Astro.props as {
           ? items.notes.slice(0, 6)
           : items.notes
               .filter((item) =>
-                [item.title, item.summary, item.section, item.tags.join(' '), item.aliases.join(' ')]
+                [
+                  item.title,
+                  item.normalizedTitle,
+                  item.summary,
+                  item.excerpt,
+                  item.section,
+                  item.path,
+                  item.tags.join(' '),
+                  item.aliases.join(' '),
+                ]
                   .join(' ')
                   .toLowerCase()
                   .includes(cleaned),

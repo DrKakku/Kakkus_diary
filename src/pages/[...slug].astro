@@ -92,7 +92,7 @@ const hasAsideContent = note
           <h1>{note.title}</h1>
 
           <div class="article-meta">
-            <span>{formatDate(note.entry.data.date)}</span>
+            <span>{formatDate(note.canonicalDate)}</span>
             <a href={withBase("/writing")}>Writing hub</a>
             <a href={withBase("/" + note.sectionKey)}>{note.sectionLabel}</a>
           </div>
