@@ -1,0 +1,30 @@
+---
+title: Project Name
+summary: One sentence on what the project is and why it matters.
+description: Optional longer description for cards and metadata.
+featured: false
+status: Exploring
+role: Optional role summary
+kind: Product / Tool / Experiment
+stack:
+  - Astro
+  - TypeScript
+startDate: 2026-04-01
+links:
+  live: https://example.com
+  repo: https://github.com/example/repo
+---
+
+## What it is
+
+Describe the project in a paragraph.
+
+## Why it exists
+
+Explain the problem, motivation, or direction.
+
+## What makes it interesting
+
+- Distinct idea 1
+- Distinct idea 2
+- Distinct idea 3

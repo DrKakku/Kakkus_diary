@@ -21,30 +21,39 @@ const { items } = Astro.props as {
 };
 ---
 
-<section class="search-shell search-palette">
-  <div class="search-head">
-    <div>
-      <p class="eyebrow">Search The Vault</p>
-      <h2>Start typing and jump straight into notes, aliases, or tags.</h2>
-    </div>
-    <p class="search-help">This works like a lightweight command palette for the writing subsite.</p>
+<section class="rounded-[2rem] border border-base-300 bg-base-100/85 p-5 shadow-sm">
+  <div class="space-y-2">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Search the vault</p>
+    <h2 class="display-font text-3xl font-semibold">Jump to notes, tags, and aliases.</h2>
+    <p class="max-w-2xl text-sm leading-7 text-base-content/70">
+      Start with a word, a tag, or a half-remembered thought and the closest notes will surface here.
+    </p>
   </div>
 
-  <div class="palette-input-shell">
-    <label class="search-field palette-field">
-      <span class="sr-only">Search writing</span>
-      <input type="search" placeholder="Search notes, tags, aliases, folders..." autocomplete="off" />
+  <div class="relative mt-5">
+    <label class="input input-bordered flex items-center gap-3 rounded-2xl bg-base-100/95 shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input
+        type="search"
+        class="grow"
+        placeholder="Search for a note, tag, or half-formed idea..."
+        autocomplete="off"
+      />
     </label>
 
-    <div class="palette-results" hidden>
-      <div class="palette-group">
-        <p class="palette-label">Notes</p>
-        <div class="palette-note-results"></div>
-      </div>
+    <div class="palette-results absolute inset-x-0 top-[calc(100%+0.85rem)] z-20 rounded-3xl border border-base-300 bg-base-100/95 p-4 shadow-2xl" hidden>
+      <div class="grid gap-5 lg:grid-cols-2">
+        <section class="space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-base-content/50">Notes</p>
+          <div class="palette-note-results space-y-3"></div>
+        </section>
 
-      <div class="palette-group">
-        <p class="palette-label">Tags</p>
-        <div class="palette-tag-results"></div>
+        <section class="space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-base-content/50">Tags</p>
+          <div class="palette-tag-results space-y-3"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -68,10 +77,12 @@ const { items } = Astro.props as {
         notes
           .map(
             (item) => `
-              <a class="palette-result" href="${item.url}">
-                <strong>${item.title}</strong>
-                <span>${item.section} • ${item.path}</span>
-                <p>${item.summary || item.excerpt}</p>
+              <a class="card border border-base-300 bg-base-100 shadow-sm transition hover:border-primary/40 hover:shadow-md" href="${item.url}">
+                <div class="card-body gap-2 p-4">
+                  <strong class="text-base">${item.title}</strong>
+                  <span class="text-xs uppercase tracking-[0.16em] text-base-content/50">${item.section} • ${item.path}</span>
+                  <p class="text-sm leading-6 text-base-content/70">${item.summary || item.excerpt}</p>
+                </div>
               </a>`,
           )
           .join('');
@@ -80,64 +91,86 @@ const { items } = Astro.props as {
         tags
           .map(
             (item) => `
-              <a class="palette-result palette-result-tag" href="${item.url}">
-                <strong>#${item.label}</strong>
-                <span>${item.count} linked note${item.count === 1 ? '' : 's'}</span>
+              <a class="card border border-base-300 bg-base-100 shadow-sm transition hover:border-primary/40 hover:shadow-md" href="${item.url}">
+                <div class="card-body gap-1 p-4">
+                  <strong class="text-base">#${item.label}</strong>
+                  <span class="text-sm text-base-content/70">${item.count} linked note${item.count === 1 ? '' : 's'}</span>
+                </div>
               </a>`,
           )
           .join('');
 
+      const closeResults = () => {
+        results.hidden = true;
+      };
+
       const render = (query) => {
         const cleaned = query.trim().toLowerCase();
-        const filteredNotes = !cleaned
-          ? items.notes.slice(0, 6)
-          : items.notes
-              .filter((item) =>
-                [
-                  item.title,
-                  item.normalizedTitle,
-                  item.summary,
-                  item.excerpt,
-                  item.section,
-                  item.path,
-                  item.tags.join(' '),
-                  item.aliases.join(' '),
-                ]
-                  .join(' ')
-                  .toLowerCase()
-                  .includes(cleaned),
-              )
-              .slice(0, 8);
 
-        const filteredTags = !cleaned
-          ? items.tags.slice(0, 8)
-          : items.tags
-              .filter((item) => item.label.toLowerCase().includes(cleaned))
-              .slice(0, 8);
+        if (!cleaned) {
+          closeResults();
+          noteResults.innerHTML = '';
+          tagResults.innerHTML = '';
+          return;
+        }
+
+        const filteredNotes = items.notes
+          .filter((item) =>
+            [
+              item.title,
+              item.normalizedTitle,
+              item.summary,
+              item.excerpt,
+              item.section,
+              item.path,
+              item.tags.join(' '),
+              item.aliases.join(' '),
+            ]
+              .join(' ')
+              .toLowerCase()
+              .includes(cleaned),
+          )
+          .slice(0, 6);
+
+        const filteredTags = items.tags
+          .filter((item) => item.label.toLowerCase().includes(cleaned))
+          .slice(0, 6);
 
         noteResults.innerHTML = filteredNotes.length
           ? renderNotes(filteredNotes)
-          : '<div class="palette-empty">No note matches.</div>';
+          : '<div class="rounded-2xl border border-dashed border-base-300 bg-base-100/70 p-4 text-sm text-base-content/60">No note matches.</div>';
 
         tagResults.innerHTML = filteredTags.length
           ? renderTags(filteredTags)
-          : '<div class="palette-empty">No tag matches.</div>';
+          : '<div class="rounded-2xl border border-dashed border-base-300 bg-base-100/70 p-4 text-sm text-base-content/60">No tag matches.</div>';
 
         results.hidden = false;
       };
 
-      input.addEventListener('focus', () => render(input.value));
       input.addEventListener('input', (event) => render(event.target.value));
+      input.addEventListener('focus', () => {
+        if (input.value.trim()) {
+          render(input.value);
+        }
+      });
       input.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-          results.hidden = true;
+          input.value = '';
+          closeResults();
           input.blur();
         }
+      });
+      input.addEventListener('blur', () => {
+        window.setTimeout(() => {
+          if (!section.contains(document.activeElement)) {
+            closeResults();
+          }
+        }, 50);
       });
 
       document.addEventListener('click', (event) => {
         if (!section.contains(event.target)) {
-          results.hidden = true;
+          closeResults();
         }
       });
     })();

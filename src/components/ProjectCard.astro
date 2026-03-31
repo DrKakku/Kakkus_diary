@@ -13,37 +13,43 @@ const {
 const links = project.entry.data.links ?? {};
 ---
 
-<article class:list={["project-card", featured && "featured", project.statusTone]}>
-  <div class="card-topline">
-    <span class="card-eyebrow">{project.entry.data.kind ?? "Project"}</span>
-    {project.entry.data.startDate && (
-      <span class="card-date">
-        {formatDateRange(project.entry.data.startDate, project.entry.data.endDate)}
-      </span>
-    )}
-  </div>
+<article class:list={[
+  "card border border-base-300 bg-base-100/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+  featured && "border-primary/40 shadow-md",
+]}>
+  <div class="card-body gap-4 p-5">
+    <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-base-content/50">
+      <span>{project.entry.data.kind ?? "Project"}</span>
+      {project.entry.data.startDate && (
+        <>
+          <span>•</span>
+          <span>{formatDateRange(project.entry.data.startDate, project.entry.data.endDate)}</span>
+        </>
+      )}
+    </div>
 
-  <h3><a href={project.url}>{project.entry.data.title}</a></h3>
-  <p>{project.summary}</p>
+    <div class="space-y-2">
+      <h3 class="text-xl font-semibold">
+        <a class="link link-hover" href={project.url}>{project.entry.data.title}</a>
+      </h3>
+      <p class="text-sm leading-7 text-base-content/70">{project.summary}</p>
+    </div>
 
-  <div class="chip-row">
-    {project.entry.data.status && <span class:list={["chip", project.statusTone]}>{project.entry.data.status}</span>}
-    {project.entry.data.stack.slice(0, featured ? 6 : 4).map((item) => (
-      <span class="chip chip-muted">{item}</span>
-    ))}
-  </div>
+    <div class="flex flex-wrap gap-2">
+      {project.entry.data.status && <span class="badge badge-outline">{project.entry.data.status}</span>}
+      {project.entry.data.stack.slice(0, featured ? 6 : 4).map((item) => (
+        <span class="badge badge-ghost">{item}</span>
+      ))}
+    </div>
 
-  <div class="action-row">
-    <a class="text-link" href={project.url}>Case study</a>
-    {links.live && (
-      <a class="text-link" href={links.live} target="_blank" rel="noreferrer">
-        Live link
-      </a>
-    )}
-    {links.repo && (
-      <a class="text-link" href={links.repo} target="_blank" rel="noreferrer">
-        Repository
-      </a>
-    )}
+    <div class="card-actions justify-start">
+      <a class="btn btn-sm btn-primary" href={project.url}>Case study</a>
+      {links.live && (
+        <a class="btn btn-sm btn-ghost" href={links.live} target="_blank" rel="noreferrer">Live</a>
+      )}
+      {links.repo && (
+        <a class="btn btn-sm btn-ghost" href={links.repo} target="_blank" rel="noreferrer">Repo</a>
+      )}
+    </div>
   </div>
 </article>

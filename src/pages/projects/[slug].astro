@@ -6,9 +6,9 @@ import { formatDateRange } from "../../lib/content";
 const projects = await getCollection("projects");
 
 export async function getStaticPaths() {
-  const projects = await getCollection("projects");
+  const projectEntries = await getCollection("projects");
 
-  return projects.map((project) => ({
+  return projectEntries.map((project) => ({
     params: { slug: project.id },
     props: { project },
   }));
@@ -23,54 +23,58 @@ const links = project.data.links ?? {};
 ---
 
 <BaseLayout title={project.data.title} description={project.data.description ?? project.data.summary} theme="portfolio">
-  <section class="hero-panel hero-portfolio">
-    <div class="hero-copy">
-      <p class="eyebrow">{project.data.kind ?? "Project"}</p>
-      <h1>{project.data.title}</h1>
-      <p class="hero-lead">{project.data.summary}</p>
+  <section class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]">
+    <div class="rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">{project.data.kind ?? "Project"}</p>
+      <h1 class="display-font mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{project.data.title}</h1>
+      <p class="mt-4 max-w-2xl text-base leading-8 text-base-content/72">
+        {project.data.summary ?? project.data.description}
+      </p>
 
-      <div class="action-row">
+      <div class="mt-6 flex flex-wrap gap-3">
         {links.live && (
-          <a class="button-link" href={links.live} target="_blank" rel="noreferrer">Open live link</a>
+          <a class="btn btn-primary rounded-full px-6" href={links.live} target="_blank" rel="noreferrer">Open live link</a>
         )}
         {links.repo && (
-          <a class="button-link button-link-secondary" href={links.repo} target="_blank" rel="noreferrer">
+          <a class="btn btn-outline rounded-full px-6" href={links.repo} target="_blank" rel="noreferrer">
             View repository
           </a>
         )}
       </div>
     </div>
 
-    <aside class="hero-metrics">
-      {project.data.role && (
-        <div class="metric-card">
-          <strong>{project.data.role}</strong>
-          <span>role</span>
-        </div>
-      )}
-      {project.data.status && (
-        <div class="metric-card">
-          <strong>{project.data.status}</strong>
-          <span>status</span>
-        </div>
-      )}
-      {project.data.startDate && (
-        <div class="metric-card">
-          <strong>{formatDateRange(project.data.startDate, project.data.endDate)}</strong>
-          <span>timeline</span>
-        </div>
-      )}
+    <aside class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Project details</p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        {project.data.stack.map((item) => (
+          <span class="badge badge-ghost badge-lg">{item}</span>
+        ))}
+      </div>
+      <dl class="mt-5 space-y-4 text-sm">
+        {project.data.role && (
+          <div>
+            <dt class="text-base-content/50">Role</dt>
+            <dd class="mt-1 font-medium">{project.data.role}</dd>
+          </div>
+        )}
+        {project.data.status && (
+          <div>
+            <dt class="text-base-content/50">Status</dt>
+            <dd class="mt-1 font-medium">{project.data.status}</dd>
+          </div>
+        )}
+        {project.data.startDate && (
+          <div>
+            <dt class="text-base-content/50">Timeline</dt>
+            <dd class="mt-1 font-medium">{formatDateRange(project.data.startDate, project.data.endDate)}</dd>
+          </div>
+        )}
+      </dl>
     </aside>
   </section>
 
-  <section class="content-panel article-shell">
-    <div class="chip-row">
-      {project.data.stack.map((item) => (
-        <span class="chip chip-muted">{item}</span>
-      ))}
-    </div>
-
-    <div class="prose prose-project">
+  <section class="mt-12 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="article-prose">
       <Content />
     </div>
   </section>

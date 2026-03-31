@@ -1,0 +1,37 @@
+---
+import { formatDateRange } from "../../lib/content";
+import type { ProjectRecord } from "../../lib/site-data";
+
+const { projects } = Astro.props as { projects: ProjectRecord[] };
+---
+
+<ol class="timeline-shell relative space-y-6 pl-8">
+  {projects.map((project) => (
+    <li class="relative">
+      <span class="absolute -left-[1.9rem] top-2 h-3.5 w-3.5 rounded-full border-2 border-base-100 bg-secondary shadow"></span>
+      <article class="card border border-base-300 bg-base-100/85 shadow-sm">
+        <div class="card-body gap-3 p-5">
+          <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-base-content/50">
+            <span>{project.entry.data.kind ?? "Project"}</span>
+            {project.entry.data.startDate && (
+              <>
+                <span>•</span>
+                <span>{formatDateRange(project.entry.data.startDate, project.entry.data.endDate)}</span>
+              </>
+            )}
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-lg font-semibold"><a class="link link-hover" href={project.url}>{project.entry.data.title}</a></h3>
+            <p class="text-sm leading-7 text-base-content/70">{project.summary}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            {project.entry.data.status && <span class="badge badge-outline">{project.entry.data.status}</span>}
+            {project.entry.data.stack.slice(0, 4).map((item) => (
+              <span class="badge badge-ghost">{item}</span>
+            ))}
+          </div>
+        </div>
+      </article>
+    </li>
+  ))}
+</ol>

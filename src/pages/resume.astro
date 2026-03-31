@@ -4,31 +4,85 @@ import { siteConfig } from "../config/site.config";
 ---
 
 <BaseLayout title="Resume" description={siteConfig.resume.summary} theme="portfolio">
-  <section class="hero-panel hero-portfolio">
-    <div class="hero-copy">
-      <p class="eyebrow">Resume Surface</p>
-      <h1>{siteConfig.profile.name}</h1>
-      <p class="hero-lead">{siteConfig.resume.summary}</p>
+  <section class="rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Resume Surface</p>
+    <h1 class="display-font mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{siteConfig.profile.name}</h1>
+    <p class="mt-4 max-w-2xl text-base leading-8 text-base-content/72">{siteConfig.resume.summary}</p>
+    <div class="mt-5 flex flex-wrap gap-2 text-sm">
+      <a class="badge badge-outline badge-lg" href={`mailto:${siteConfig.profile.email}`}>{siteConfig.profile.email}</a>
+      <a class="badge badge-outline badge-lg" href={`tel:${siteConfig.profile.phone.replace(/\s+/g, "")}`}>{siteConfig.profile.phone}</a>
+      <span class="badge badge-ghost badge-lg">{siteConfig.profile.location}</span>
     </div>
   </section>
 
-  <section class="content-panel split-panel">
-    <div>
-      <p class="eyebrow">Highlights</p>
-      <h2>What I tend to bring into products.</h2>
-      <div class="copy-stack">
+  <section class="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
+    <div class="rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Highlights</p>
+      <div class="mt-5 space-y-4 text-sm leading-7 text-base-content/72">
         {siteConfig.resume.highlights.map((item) => <p>{item}</p>)}
       </div>
     </div>
 
-    <aside class="tag-cloud">
-      <p class="eyebrow">Skills</p>
-      <h2>Current toolkit.</h2>
-      <div class="chip-row">
+    <aside class="rounded-[2rem] border border-base-300 bg-base-100/75 p-6 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Skills</p>
+      <div class="mt-4 flex flex-wrap gap-2">
         {siteConfig.resume.skills.map((skill) => (
-          <span class="chip chip-muted">{skill}</span>
+          <span class="badge badge-ghost badge-lg">{skill}</span>
         ))}
       </div>
     </aside>
+  </section>
+
+  <section class="mt-12 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Experience</p>
+    <div class="mt-6 space-y-6">
+      {siteConfig.resume.experience.map((item) => (
+        <article class="rounded-[1.5rem] border border-base-300 bg-base-100/70 p-5">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 class="text-xl font-semibold">{item.role} | {item.company}</h2>
+            </div>
+            <span class="text-sm text-base-content/55">{item.period}</span>
+          </div>
+          <ul class="mt-4 space-y-3 text-sm leading-7 text-base-content/72">
+            {item.points.map((point) => <li>{point}</li>)}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="mt-12 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Selected Project</p>
+      <div class="mt-5 space-y-5">
+        {siteConfig.resume.selectedProjects.map((project) => (
+          <article class="space-y-3">
+            <h2 class="text-xl font-semibold">{project.name}</h2>
+            <ul class="space-y-3 text-sm leading-7 text-base-content/72">
+              {project.points.map((point) => <li>{point}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <section class="rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Education</p>
+        <div class="mt-5 space-y-4 text-sm leading-7 text-base-content/72">
+          {siteConfig.resume.education.map((item) => <p>{item}</p>)}
+        </div>
+      </section>
+
+      <section class="rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/50">Certifications</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          {siteConfig.resume.certifications.map((item) => (
+            <span class="badge badge-outline badge-lg">{item}</span>
+          ))}
+        </div>
+      </section>
+    </div>
   </section>
 </BaseLayout>

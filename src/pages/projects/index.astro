@@ -1,27 +1,37 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProjectCard from "../../components/ProjectCard.astro";
+import SectionHeading from "../../components/ui/SectionHeading.astro";
+import ProjectTimeline from "../../components/portfolio/ProjectTimeline.astro";
 import { getSiteData } from "../../lib/site-data";
 
 const siteData = await getSiteData();
 ---
 
 <BaseLayout title="Projects" description="Project case studies" theme="portfolio">
-  <section class="hero-panel hero-portfolio">
-    <div class="hero-copy">
-      <p class="eyebrow">Projects</p>
-      <h1>Case studies, experiments, and products that spill into the writing system.</h1>
-      <p class="hero-lead">
-        Selected work gets a full internal page here. Smaller things can still live as links, prototypes, or notes.
-      </p>
-    </div>
+  <section class="rounded-[2rem] border border-base-300 bg-base-100/80 p-8 shadow-sm sm:p-10">
+    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Projects</p>
+    <h1 class="display-font mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+      Case studies, experiments, and product directions with room for context.
+    </h1>
+    <p class="mt-4 max-w-2xl text-base leading-8 text-base-content/72">
+      This page is intentionally simple. Adding a new project should mostly mean adding one markdown file, not editing layout code.
+    </p>
   </section>
 
-  <section class="content-panel">
-    <div class="project-grid">
+  <section class="mt-12 space-y-6">
+    <SectionHeading eyebrow="Case Studies" title="Featured and current work." />
+    <div class="grid gap-5 lg:grid-cols-2">
       {siteData.projects.map((project) => (
         <ProjectCard project={project} featured={project.entry.data.featured} />
       ))}
+    </div>
+  </section>
+
+  <section class="mt-12 rounded-[2rem] border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <SectionHeading eyebrow="Timeline" title="Recent project history." />
+    <div class="mt-6">
+      <ProjectTimeline projects={siteData.projects.slice(0, 6)} />
     </div>
   </section>
 </BaseLayout>

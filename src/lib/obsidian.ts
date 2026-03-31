@@ -1,7 +1,12 @@
 import path from "node:path";
 import { DateTime } from "luxon";
+import { humanizeSlug } from "./content";
 
 export type InlineFields = Record<string, unknown>;
+export type DerivedField<T> = {
+  value: T | undefined;
+  source: string;
+};
 
 const frontmatterDateKeys = ["date", "practice_date"];
 
@@ -80,7 +85,91 @@ export function coerceDate(value: unknown): Date | undefined {
 }
 
 export function getCanonicalDate(fields: Record<string, unknown>) {
-  return coerceDate(fields.date) ?? coerceDate(fields.practice_date);
+  return (
+    coerceDate(fields.date) ??
+    coerceDate(fields.practice_date) ??
+    coerceDate(fields.session_date)
+  );
+}
+
+export function deriveTitle(fields: Record<string, unknown>, vaultPath: string, body: string): DerivedField<string> {
+  if (typeof fields.title === "string" && fields.title.trim()) {
+    return { value: fields.title.trim(), source: "frontmatter.title" };
+  }
+
+  const fallback = humanizeSlug(vaultPath.split("/").pop() ?? "untitled");
+  if (fallback) {
+    return { value: fallback, source: "filename" };
+  }
+
+  const heading = body
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => /^#\s+/.test(line))
+    ?.replace(/^#\s+/, "")
+    .trim();
+
+  if (heading) {
+    return { value: heading, source: "body.heading" };
+  }
+
+  return { value: "Untitled", source: "default" };
+}
+
+export function deriveDate(fields: Record<string, unknown>, vaultPath: string): DerivedField<Date> {
+  const direct =
+    coerceDate(fields.date) ?? coerceDate(fields.practice_date) ?? coerceDate(fields.session_date);
+
+  if (direct) {
+    return {
+      value: direct,
+      source:
+        coerceDate(fields.date)
+          ? "frontmatter.date"
+          : coerceDate(fields.practice_date)
+            ? "frontmatter.practice_date"
+            : "inline.session_date",
+    };
+  }
+
+  const lastSegment = vaultPath.split("/").pop() ?? "";
+  const dateMatch = /(\d{4}-\d{2}-\d{2})/.exec(lastSegment);
+  if (dateMatch) {
+    return { value: coerceDate(dateMatch[1]), source: "filename.date" };
+  }
+
+  return { value: undefined, source: "none" };
+}
+
+export function deriveType(fields: Record<string, unknown>, vaultPath: string, title: string): DerivedField<string> {
+  if (typeof fields.type === "string" && fields.type.trim()) {
+    return { value: fields.type.trim(), source: "frontmatter.type" };
+  }
+
+  const normalizedPath = vaultPath.toLowerCase();
+  const normalizedTitle = title.toLowerCase();
+
+  if (normalizedPath.includes("daily practice tracker") || /^day\s+\d+/i.test(title)) {
+    return { value: "tracker-entry", source: "path-pattern" };
+  }
+
+  if (normalizedTitle.includes("summary")) {
+    return { value: "summary", source: "title-pattern" };
+  }
+
+  if (normalizedPath.startsWith("goals/")) {
+    return { value: "goal-note", source: "folder-pattern" };
+  }
+
+  if (normalizedPath.startsWith("ideas/") || normalizedPath.startsWith("random ideas/") || normalizedPath.startsWith("random-ideas/")) {
+    return { value: "idea", source: "folder-pattern" };
+  }
+
+  if (normalizedPath.startsWith("practice diary/") || normalizedPath.startsWith("practice-diary/")) {
+    return { value: "practice-note", source: "folder-pattern" };
+  }
+
+  return { value: "note", source: "default" };
 }
 
 export function toDateTime(value: unknown) {

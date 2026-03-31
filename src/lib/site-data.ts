@@ -19,6 +19,9 @@ import {
   withBase,
 } from "./content";
 import {
+  deriveDate,
+  deriveTitle,
+  deriveType,
   getCanonicalDate,
   getVaultPathFromFilePath,
   mergeObsidianFields,
@@ -57,6 +60,12 @@ export type NoteRecord = {
   title: string;
   canonicalTitle: string;
   canonicalDate?: Date;
+  derivedType: string;
+  derivationSource: {
+    title: string;
+    date: string;
+    type: string;
+  };
   summary: string;
   sectionKey: string;
   sectionLabel: string;
@@ -219,8 +228,15 @@ async function buildSiteData(): Promise<SiteData> {
       const aliases = getUniqueTags(entry.data.aliases);
       const inlineFields = parseInlineFields(entry.body ?? "");
       const fields = mergeObsidianFields(entry.data, inlineFields);
-      const canonicalTitle = getEntryTitle(entry);
-      const canonicalDate = getCanonicalDate(fields);
+      const titleField = deriveTitle(fields, vaultPath, entry.body ?? "");
+      const dateField = deriveDate(fields, vaultPath);
+      const typeField = deriveType(fields, vaultPath, titleField.value ?? getEntryTitle(entry));
+      const canonicalTitle = titleField.value ?? getEntryTitle(entry);
+      const canonicalDate = dateField.value ?? getCanonicalDate(fields);
+      const derivedType = typeField.value ?? "note";
+      if (!fields.type) {
+        fields.type = derivedType;
+      }
       const excerpt = extractExcerpt(entry.body ?? "", 400);
 
       const note: NoteRecord = {
@@ -232,6 +248,12 @@ async function buildSiteData(): Promise<SiteData> {
         title: canonicalTitle,
         canonicalTitle,
         canonicalDate,
+        derivedType,
+        derivationSource: {
+          title: titleField.source,
+          date: dateField.source,
+          type: typeField.source,
+        },
         summary: getEntrySummary(entry),
         sectionKey,
         sectionLabel: sectionLabel ?? humanizeSlug(sectionKey),
@@ -371,7 +393,10 @@ function buildProjects(projects: ProjectEntry[]) {
     .map((entry) => ({
       entry,
       url: getProjectUrl(entry),
-      summary: entry.data.description ?? entry.data.summary,
+      summary:
+        entry.data.summary ??
+        entry.data.description ??
+        extractExcerpt(entry.body ?? "", 180),
       statusTone: entry.data.status ? `status-${slugify(entry.data.status)}` : "",
     }));
 }

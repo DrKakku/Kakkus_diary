@@ -17,5 +17,11 @@
     "mermaid": "^11.13.0",
     "obsidian-dataview": "^0.5.68",
     "vis-network": "^10.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.2.2",
+    "daisyui": "^5.5.19",
+    "tailwindcss": "^4.2.2"
   }
 }
