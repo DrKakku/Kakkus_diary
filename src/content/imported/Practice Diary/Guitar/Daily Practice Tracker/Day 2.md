@@ -5,7 +5,7 @@ day_name: Wednesday
 week: 14
 month: 2026-04
 planned_minutes: 60
-completed_minutes: 60
+completed_minutes: 40
 status: complete
 energy: Low
 metronome_used: false
@@ -16,8 +16,10 @@ arsenal_note:
   - - The arsenal
 summary_note:
   - - Daily Practice Summary
-techniques_practiced: []
-songs_practiced: []
+techniques_practiced:
+  - the spider
+songs_practiced:
+  - blackbird, let it be
 ---
 
 # Guitar Daily Practice
