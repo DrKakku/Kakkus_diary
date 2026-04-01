@@ -5,8 +5,8 @@ day_name: Wednesday
 week: 14
 month: 2026-04
 planned_minutes: 60
-completed_minutes: 0
-status: incomplete
+completed_minutes: 60
+status: complete
 energy: Low
 metronome_used: false
 bpm_start: "60"
