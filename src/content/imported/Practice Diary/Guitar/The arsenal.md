@@ -16,9 +16,12 @@ ___
 or would be better if i learn them
 This is all from a music theory perspective
 
-- [ ] Nashville Number System
-- [ ] CAGED System
-- [ ] Circle of 5ths
+- [ ] [[Nashville Number System]]
+- [ ] [[CAGED System]]
+- [ ] [[Circle of 5ths]]
+- [ ] [[Pentatonic scales]]
+
+[[Freatboard Memorisation]]
 
 ## Freatboard exercises
 
